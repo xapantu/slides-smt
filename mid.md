@@ -1,7 +1,7 @@
 ---
 title: Model Checking of Fault-tolerant Systems
-author: Lucas
-date: June 2, 2016
+author: Lucas Baudin
+date: June 15, 2016
 theme: "Warsaw"
 toc: true
 header-includes:
@@ -10,6 +10,28 @@ header-includes:
 
 
 # Model Checking Modulo Theories
+
+## Model Checking
+
+- a state type is a list of variables: $\mathbf{x}$
+- a state is a valuation for these variables
+- a transition is a formula over the current state variables and the next state variables \newline
+(usually represented as a guard $H(\mathbf{x})$ and a (partial) assignment $V(\mathbf{x'})$)
+- $(H_1(\mathbf{x}) \land V _1 (\mathbf{x'})) \lor … \lor (H_n(\mathbf{x})\land V_n(\mathbf{x'}))$
+
+## Modulo Theories
+
+- the formulae can be in any theory
+- example:
+	 - if the state type is a variable $x$ of type int
+ 	 - transition: $x < 0 \land x' = x \lor x \ge 0 \land x' = x + 1$
+ 	 - describes a system which has a variable $x$ which keeps increasing unless is is lower than $0$.
+
+# Model Checking of a Fault-tolerant System
+
+## The Byzantine General Problem
+
+## Pseudo-Code
 
 # Sally
 
@@ -135,6 +157,8 @@ BEGIN
   wrong_lemma: LEMMA
     my_module |- G(x > 0 -> x = 1)
 
+END
+
 ~~~
 
 [/columns]
@@ -148,6 +172,11 @@ BEGIN
 
 - for most examples, they can be avoided in transitions
 - works only with z3
+- example:
+
+~~~
+(forall (i Int) (select a i))
+~~~
 
 ## Counting in SMT
 
@@ -217,7 +246,9 @@ BEGIN
 - to deal with constant multiplications, a modulo information can be added to every intervals (such as $([5, 10), = 1 [3])$ are the integers $x$ between 5 and 10 and such that $3 | x - 1$)
 - intersection, negation of these intervals can be done in an analog way
 
+## Future Work
 
-## Counting over arrays
+- Counting over arrays
+- IC3 with arrays and counting quantifiers
 
 ## References
