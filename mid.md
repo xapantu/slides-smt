@@ -25,13 +25,56 @@ header-includes:
 - example:
 	 - if the state type is a variable $x$ of type int
  	 - transition: $x < 0 \land x' = x \lor x \ge 0 \land x' = x + 1$
- 	 - describes a system which has a variable $x$ which keeps increasing unless is is lower than $0$.
+ 	 - describes a system which has a variable $x$ which keeps increasing unless it is lower than $0$.
 
 # Model Checking of a Fault-tolerant System
 
 ## The Byzantine General Problem
 
+- One general wants to give an order to $n-1$ lieutenants.
+- Some of them may be faulty (including the general).
+- In the end, they have to decide on the same order (at least for all the non faulty lieutenants/general)
+
 ## Pseudo-Code
+
+~~~
+% message[i][j] is the message sent by lieutenant j to i
+message: array of (lieutenants * lieutenants) to message
+
+source: the general id
+
+% value[i] is the order that lieutenant i will follow
+value: array of lieutenants to message
+
+% good[i] is true if lieutenant i is non faulty
+good: array of lieutenants to boolean
+~~~
+
+## Pseudo-Code
+
+~~~
+
+propagate():
+  forall i, j do
+    if good[i]
+      message[j][i] <- message[i][source]
+
+agree():
+  forall i do
+    if good[i]
+      value[i] <- majority(message[i])
+
+propagate();
+propagate();
+agree();
+~~~
+
+## The Byzantine General Problem
+
+- $\exists v\ \forall i\ good[i] \Rightarrow value[i] = v$
+- How many lieutenants can be faulty? Does that work for a third of the lieutenants?
+- $\#\{ i \ | \ good[i]\} > 2 N /3$
+
 
 # Sally
 
@@ -80,7 +123,12 @@ header-includes:
 
 ## Input language
 
-- queries
+- queries: check that a property always holds
+```
+(query my_system
+  (>= x 0)
+)
+```
 
 
 # A new old input language: Sal
@@ -107,10 +155,10 @@ header-includes:
 my_module: MODULE
 BEGIN
   OUTPUT
-  	x: REAL,
-  	y: REAL
+    x: REAL,
+    y: REAL
   INITIALIZATION
-  	x = 0;
+    x = 0;
   TRANSITION
     ...
 END;
@@ -123,11 +171,11 @@ END;
 TRANSITION
   [x >= 0 -->
      x' = x + 1;
-	 y' IN { i: REAL | TRUE }
+     y' IN { i: REAL | TRUE }
   []
    TRUE -->
      x' = 0;
-  	 y' IN { i: REAL | TRUE }
+     y' IN { i: REAL | TRUE }
   ]
 ~~~
 
@@ -173,10 +221,9 @@ END
 - for most examples, they can be avoided in transitions
 - works only with z3
 - example:
-
-~~~
+```
 (forall (i Int) (select a i))
-~~~
+```
 
 ## Counting in SMT
 
