@@ -6,6 +6,8 @@ theme: "Warsaw"
 toc: true
 header-includes:
  - \usepackage{mathtools}
+ - \usepackage{tikz}
+ - \usetikzlibrary{arrows.meta}
 ---
 
 
@@ -16,24 +18,57 @@ header-includes:
 - a state type is a list of variables: $\mathbf{x}$
 - a state is a valuation for these variables
 - a transition is a formula over the current state variables and the next state variables \newline
-(usually represented as a guard $H(\mathbf{x})$ and a (partial) assignment $V(\mathbf{x'})$)
-- $(H_1(\mathbf{x}) \land V _1 (\mathbf{x'})) \lor … \lor (H_n(\mathbf{x})\land V_n(\mathbf{x'}))$
+(usually represented as a guard $H(\mathbf{x})$ and a (partial) assignment $V(\mathbf{x}, \mathbf{x'})$)
+- $(H_1(\mathbf{x}) \land V _1 (\mathbf{x}, \mathbf{x'})) \lor … \lor (H_n(\mathbf{x})\land V_n(\mathbf{x}, \mathbf{x'}))$
 
 ## Modulo Theories
 
-- the formulae can be in any theory
-- example:
+- the logical formula can be in any theory
+- example: a system which has a variable $x$ which keeps increasing unless it is lower than $0$.
 	 - if the state type is a variable $x$ of type int
- 	 - transition: $x < 0 \land x' = x \lor x \ge 0 \land x' = x + 1$
- 	 - describes a system which has a variable $x$ which keeps increasing unless it is lower than $0$.
+ 	 - transition: $(x < 0 \land x' = x) \lor (x \ge 0 \land x' = x + 1)$
+
+```
+      if x < 0
+        x' = x
+      if x >= 0
+        x' = x + 1
+```
 
 # Model Checking of a Fault-tolerant System
 
 ## The Byzantine General Problem
 
-- One general wants to give an order to $n-1$ lieutenants.
+- One general wants to give an order to $n-1$ lieutenants. (Let's say that the general is just a special lieutenant.)
 - Some of them may be faulty (including the general).
-- In the end, they have to decide on the same order (at least for all the non faulty lieutenants/general)
+- In the end, they have to decide on the same order (at least for all the non faulty lieutenants).
+
+## An Algorithm
+
+[columns]
+
+[column=0.5]
+
+- Initial algorithm in (@Lamport)
+- A simplified version
+
+[column=0.5]
+
+\begin{tikzpicture}
+    \node[shape=circle,draw=red] (G) at (2,2) {General};
+	\node[shape=circle,draw=black] (L1) at (0,0) {L1};
+	\node[shape=circle,draw=black] (L2) at (2,0) {L2};
+	\node[shape=circle,draw=black] (L3) at (4,0) {L3};
+
+	\path [->] (G) edge node {} (L1);
+	\path [->] (G) edge node {} (L2);
+	\path [->] (G) edge node {} (L3);
+	\path [<->] (L2) edge[style={draw=blue}]  node {} (L3);
+	\path [<->] (L1) edge[style={draw=blue}]  node {} (L2);
+	\path [<->] (L1) edge[bend right=40, style={draw=blue}]  node {} (L3);
+\end{tikzpicture}
+
+[/columns]
 
 ## Pseudo-Code
 
@@ -75,6 +110,9 @@ agree();
 - How many lieutenants can be faulty? Does that work for a third of the lieutenants?
 - $\#\{ i \ | \ good[i]\} > 2 N /3$
 
+. . .
+
+- $\#\{ i \ | \ good[i]\} > 2 N /3 \Rightarrow \exists v\ \forall i\ good[i] \Rightarrow value[i] = v$
 
 # Sally
 
@@ -86,13 +124,13 @@ agree();
 - several engines: bmc, kind, ic3
 - works with various smt solvers: mathsat, yices2, z3
 
-## Input language
+## Input Language
 
 - lisp-like language
 - low level
 - easy to parse and work with
 
-## Input language
+## Input Language
 
 - state type
 ```
@@ -109,7 +147,7 @@ agree();
 )
 ```
 
-## Input language
+## Input Language
 
 - transition: a first order formula over state variables and next state variables
 ```
@@ -121,7 +159,7 @@ agree();
 )
 ```
 
-## Input language
+## Input Language
 
 - queries: check that a property always holds
 ```
@@ -148,7 +186,7 @@ agree();
 
 [columns]
 
-[column=0.5]
+[column=0.4]
 
 ~~~ocaml
 
@@ -165,7 +203,7 @@ END;
 
 ~~~
 
-[column=0.5]
+[column=0.6]
 
 ~~~ocaml
 TRANSITION
@@ -214,7 +252,22 @@ END
 
 # Parametrization
 
+## Parametrization
+
+- The Byzantine Generals problem can be solved using existing tools…
+
+. . .
+
+  … but only for a fixed number of lieutenants.
+
+- adding $n$ more variables for $n$ new processes does not scale and does not provide a general proof.
+
+
 ## Arrays
+
+- arrays indexed by process
+- used in Cubicle (@cubicle), a parametrized model checker which supports a fragment of arrays theory
+- depending on the fragment of the theory used, might be very hard to verify
 
 ## Quantifiers
 
@@ -252,10 +305,12 @@ END
 
 . . .
 
-- example: $y = \#\{ x | 0 \leq x < z \land 0 \leq x < u\}$
+- example: $\phi(y) \land y = \#\{ x | 0 \leq x < z \land 0 \leq x < u\}$
 
 - if the oracle says $z > u$, then $y$ can be computed and $y = z$.
 - under the assumption $z > u$, $y = z$
+	- $z > u \Rightarrow y = z$
+	- $z \leq u \Rightarrow y = u$
 
 ## Counting over Presburger arithmetic, with an ordering
 
@@ -264,7 +319,7 @@ END
 
 
 - if members of $V_x(\psi)$ are disjoint \
-  $card(V_x(\psi)) = \sum_{[v, v'] \in \#_x(\psi))} (v - v') = \# \{ x | \psi(x)\}$
+  $card(V_x(\psi)) = \sum_{[v, v'] \in V_x(\psi)} (v - v') = \# \{ x | \psi(x)\}$
 
 . . .
 
@@ -293,9 +348,17 @@ END
 - to deal with constant multiplications, a modulo information can be added to every intervals (such as $([5, 10), = 1 [3])$ are the integers $x$ between 5 and 10 and such that $3 | x - 1$)
 - intersection, negation of these intervals can be done in an analog way
 
+
+## Counting in SMT
+
+- this problem is harder than universal quantification or existential quantification
+- this algorithm is exponential (if for every set of assumptions, it turns out that the cardinality constraints is not satisfiable, everyone of them must be checked)
+- if there is few constraints on the variables in the counting constraints, and that the problem is unsat, it is unpractical
+
 ## Future Work
 
+- Express lower/upper bounds for counting constraints instead of the precise symbolic expression (might speed up when the problem is unsat).
 - Counting over arrays
-- IC3 with arrays and counting quantifiers
+- IC3 with arrays and counting quantifiers.
 
 ## References
