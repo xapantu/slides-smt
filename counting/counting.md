@@ -162,15 +162,14 @@ as $\forall x.\ \left( \exists I \in S.\ x \in I\right) \iff \left( \not\exists 
 \end{definition}
 
 
-\begin{lemma}
+Lemma[]:
 If we can write a tree to derive $(S, A) \vdash \phi(x, \mathbf{y})$, then we have 
 $A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \in S\right)$. Furthermore,
 under the assumptions $A$, the intervals of S are disjoints:
-
+\newline
 if $[a, b) \in S$
 and $[c, d) \in S$ then $A \implies \forall x\ \lnot \left( a \leq x \land x <
 b\right) \lor \lnot \left( c \leq x \land x < d \right)$.
-\end{lemma}
 
 \begin{proof}
 \end{proof}
@@ -250,12 +249,5 @@ formalisation de dpll, particulièrement la partie des littéraux, etc
 ## Integration with a general purpose DPLL based SMT solver
 
 # Generalization
-
-Theorem[pytagore]:
-test1
-test2
-a$1$
-
-b
 
 # References
