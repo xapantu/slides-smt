@@ -33,24 +33,38 @@ def stringify_maths(x):
 
 def mk_columns(k, v, f, m):
     if k == "Para":
-        if type(v[0]['c']) == unicode and v[0]['c'].startswith('Lemma['):
-            b = []
-            v[0]['c'] = v[0]['c'][len('Lemma['):]
-            found = False
-            c = []
-            for a in v:
-                if not found:
-                    if type(a['c']) == unicode and a['c'].endswith("]:"):
-                        a['c'] = a['c'][:-2]
-                        found = True
+        def deal_extension(ext):
+            if type(v[0]['c']) == unicode and v[0]['c'].startswith(ext + '['):
+                b = []
+                v[0]['c'] = v[0]['c'][len(ext + '['):]
+                found = False
+                c = []
+                for a in v:
+                    if not found:
+                        if type(a['c']) == unicode and a['c'].endswith("]:"):
+                            a['c'] = a['c'][:-2]
+                            found = True
+                            b.append(a)
+                        else:
+                            b.append(a)
                     else:
-                        b.append(a)
-                else:
-                    c.append(a)
-            if found:
-                #c.insert(0, latex(r'\begin{lemma}'))
-                #c.append(latex(r'\end{lemma}'))
-                return [latex(r"\begin{lemma}[" + stringify_maths(b) + "]"), pf.Para(c), latex(r"\end{lemma}")]
+                        c.append(a)
+                if found:
+                    label = stringify_maths(b).split(" ")[0].lower()
+                    lower = ext.lower()
+                    return [latex(r"\begin{" + lower + "}[" + stringify_maths(b) +
+                        "]"), pf.Para(c), latex(r"\label{" + label + "}"),
+                        latex(r"\end{" + lower + "}")]
+
+        t = deal_extension("Theorem")
+        if t == None:
+            t = deal_extension("Lemma")
+            if t == None:
+                return deal_extension("Property")
+            else:
+                return t
+        else:
+            return t
 
 if __name__ == "__main__":
     pf.toJSONFilter(mk_columns)

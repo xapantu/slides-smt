@@ -57,15 +57,15 @@ $x \in S \iff \psi(x)$.
 
 \end{grammar}
 \caption{Formula syntax}
+\label{formula}
 \end{figure}
 
-Using some trivial rewriting, every formula built on the syntax of Figure 1 can
-be shown to be equivalent to a formula such as:
+We consider a subclass of formula built on the syntax of Figure \ref{formula}, formulas of the form:
 
 $F(c_1, …, c_n, \mathbf{y}) \land \bigwedge\limits_{i=1}^n c_i = \sharp\{ x \ |\ \psi_i(x, c_1, …, c_n,
 \mathbf{y})\}$
 
-where $F$ is not built using any counting constraints.
+where no counting constraints appear in $F$.
 
 We are going to explain a way to decide this formula, i.e. saying wether they
 are satisfiable, and if yes give a model that satisfies this formula.
@@ -188,18 +188,15 @@ cardinality at no further cost. These properties are on both the domain and the
 assumptions associated to it.
 
 
-\begin{property}[Distincts]
+Property[Distincts]:
 If $S$ is an arithmetic domain, and $A$ a set of assumptions then, if $I, J \in
 S$ and $I \neq J$, $A \implies (x \in I \implies x \not\in J)$. Thus, $\{x\ |\ x \in
 I\}$ and $\{x\ |\ x \in J\}$ are disjoints.
-\label{distincts}
-\end{property}
 
 
-\begin{property}[Consistency]
+Property[Consistency]:
 If $A$ is a set of assumptions, then it is consistent if the conjunction of
 it elements is satisfiable.
-\end{property}
 
 If the property \ref{distincts} holds and every interval of $S$ is finite, then:
 
@@ -207,8 +204,7 @@ $A \implies \sharp\{ x \in S \} =
 \sum\limits_{[a, b) \in S} b - a$.
 
 
-\begin{lemma}[Correctness]
-\end{lemma}
+Lemma[Correctness]:
 
 
 ## Algorithm
@@ -218,11 +214,9 @@ $A \implies \sharp\{ x \in S \} =
 \end{figure}
 
 
-\begin{lemma}[Termination]
-\end{lemma}
+Lemma[Termination]:
 
-\begin{lemma}[Correctnes]
-\end{lemma}
+Lemma[Correctnes]:
 
 # Solving Counting Constraints With Arrays
 
