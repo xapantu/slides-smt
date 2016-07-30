@@ -6,8 +6,12 @@ header-includes:
   - \usepackage{bussproofs}
   - \usepackage{syntax}
   - \usepackage{amsthm}
+  - \usepackage{color}
+  - \let\oldhl\hyperlink 
+  - \renewcommand{\hyperlink}[2]{\oldhl{#1}{\textcolor{red}{(#2)}}}
 numbersections: true
 subparagraph: true
+link-citations: True
 ---
 \newtheorem{definition}{Definition}
 \newtheorem{lemma}{Lemma}
@@ -65,7 +69,9 @@ We consider a subclass of formula built on the syntax of Figure \ref{formula}, f
 $F(c_1, …, c_n, \mathbf{y}) \land \bigwedge\limits_{i=1}^n c_i = \sharp\{ x \ |\ \psi_i(x, c_1, …, c_n,
 \mathbf{y})\}$
 
-where no counting constraints appear in $F$.
+where no counting constraints appear in $F$. While most formulas can be
+rewritten to this form, there are some corner cases that we discuss in the last
+section.
 
 We are going to explain a way to decide this formula, i.e. saying wether they
 are satisfiable, and if yes give a model that satisfies this formula.
@@ -78,29 +84,23 @@ However, while they definitively explain that the problem is decidable and why, 
 
 ## Constraints Interpretation
 
-\begin{definition}[Assumptions]
-\label{assumptions}
+Definition[Assumptions]:
 We call assumptions a set $A$ whose elements are atoms of the theories $\mathbf{T}_i$. In the context of a first order formula, writing $A$ means the conjuctions of the atoms of $A$.
-\end{definition}
 
-\begin{definition}[Symbolic Interval]
-\label{interval}
-
+Definition[Symbolic Interval]:
 A symbolic interval is a couple of values that are either arithmetic variables,
 constants or $\infty$.
 If $I = [a, b)$, $x \in I$ is defined as $x < b \land a \le x$.
-
+\newline\ \newline
 It is said to be finite if none of the bounds are infinite.
-\end{definition}
 
-\begin{definition}[Arithmetic Domain]
+Definition[Arithmetic Domain]:
 An arithmetic domain is a finite set of symbolic intervals (definition
-\ref{interval}). It is usually associated to
+\ref{symbolic}). It is usually associated to
 some assumptions (definition \ref{assumptions}) which make them disjoint and
 ensure that the lower bound of an interval is actually lower than the upper
 bound.
 
-\end{definition}
 
 If S is an arithmetic domain, we abusively write $x \in S$ for $\left(\bigvee\limits_{I \in S} x \in I\right)$.
 We are going to prove that $(S, A) \vdash \phi(x, \mathbf{y})$ implies $A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \in S\right)$.
@@ -150,16 +150,11 @@ Figures \ref{and}, \ref{not} and \ref{basecases} are the inference rules used to
 compute an arithmetic domain and an associated set of assumptions for a given
 formula.
 
-\begin{definition}[Domains intersection, $S \sqcap S'$ and $A_{S \sqcap S'}$]
+Definition[Domains intersection, $S \sqcap S'$ and $A_{S \sqcap S'}$]:
 
-\end{definition}
-
-\begin{definition}[Complementary Domains, $S^c$]
-
+Definition[Complementary Domains, $S^c$]:
 If $S$ is an arithmetic domain, then $S^c$ is defined as a set of intervals such
 as $\forall x.\ \left( \exists I \in S.\ x \in I\right) \iff \left( \not\exists I \in S^c.\ x \in I\right)$. 
-
-\end{definition}
 
 
 Lemma[]:
@@ -204,14 +199,41 @@ $A \implies \sharp\{ x \in S \} =
 \sum\limits_{[a, b) \in S} b - a$.
 
 
+$S$ and $S'$ are both arithmetic domain, i.e. sets of symbolic intervals. Thus,
+to do the intersection of the domains, we are going to do the intersection of
+an interval $I$ of $S$ and an interval $J$ of $S'$. So, if $I = [a, b)$ and
+$J = [c, d)$, we want a new interval $K_{I, J} = [e, f)$ such as $A \cup A' \cup
+A_{S \sqcap S'} \implies x \in I \land x \in J \iff x \in K_{I, J}$.
+Then, the intersection of the domains can be defined as $S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S'\}$.
+
+Now, let's assume we have a model $\mathcal{M}$ (i.e. an application from the
+set containing all the theory variables to their concrete value).
+$x_\mathcal{M}$ is defined as the value of $x$ in this model, and more generally
+for any term $t$ of theory $T_{\mathbb{Z}}$ (and $+\infty$, $-\infty$),
+$t_{\mathcal{M}}$ is the interpretation of $t$ in this model.
+
+In what follows, we describe a way to compte $K_{I, j}$ as well as $A_{S \sqcap
+S'}$ in regards to the model, so as the assumptions are consitents (as the model
+satifies them).
+
+Let $I = [a, b) \in S$ and $J = [c, d) \in S'$, 
+if $max(a_\mathcal{M}, c_\mathcal{M}) < min(b_\mathcal{M}, d_\mathcal{M})$,
+then $K_{I, J} = [max(a_\mathcal{M}, c_\mathcal{M}), min(b_\mathcal{M}, d_\mathcal{M}))$, else it is undefined (because in the model, the interpretation of the intervals are indeed disjoints).
+
+
+
 Lemma[Correctness]:
 
 
-## Algorithm
+## Algorithm to solve arithmetic counting contraints
 
-\begin{figure}
 
-\end{figure}
+1. $F_1(c_1, …, c_n)$
+2. `check-sat`
+3. `push`
+4. $x < y, …$
+5. `add constraints`
+6. `check-sat`
 
 
 Lemma[Termination]:
@@ -226,7 +248,7 @@ Lemma[Correctnes]:
 
 # Arrays
 
-@de2009generalized
+[@de2009generalized]
 
 ## The theory of arrays implemented in most SMT solvers
 
@@ -245,3 +267,8 @@ formalisation de dpll, particulièrement la partie des littéraux, etc
 # Generalization
 
 # References
+
+## Algorithm to solve arithmetic counting contraints
+
+Lemma[auie]:
+au

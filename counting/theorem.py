@@ -31,7 +31,13 @@ def stringify_maths(x):
     pf.walk(x, go, "", {})
     return ''.join(result)
 
+precedent_header = True
+
 def mk_columns(k, v, f, m):
+    global precedent_header
+    last_precedent_header = precedent_header
+    if not (k in ["Str", "Space", "Math"]):
+        precedent_header = k == "Header"
     if k == "Para":
         def deal_extension(ext):
             if type(v[0]['c']) == unicode and v[0]['c'].startswith(ext + '['):
@@ -52,7 +58,12 @@ def mk_columns(k, v, f, m):
                 if found:
                     label = stringify_maths(b).split(" ")[0].lower()
                     lower = ext.lower()
-                    return [latex(r"\begin{" + lower + "}[" + stringify_maths(b) +
+                    if last_precedent_header:
+                        return [latex(r"\begin{" + lower + "}[" + stringify_maths(b) +
+                        "]"), pf.Para(c), latex(r"\label{" + label + "}"),
+                        latex(r"\end{" + lower + "}")]
+                    else:
+                        return [latex(r"\vspace{3mm}"), latex(r"\begin{" + lower + "}[" + stringify_maths(b) +
                         "]"), pf.Para(c), latex(r"\label{" + label + "}"),
                         latex(r"\end{" + lower + "}")]
 
@@ -60,7 +71,11 @@ def mk_columns(k, v, f, m):
         if t == None:
             t = deal_extension("Lemma")
             if t == None:
-                return deal_extension("Property")
+                t = deal_extension("Property")
+                if t == None:
+                    return deal_extension("Definition")
+                else:
+                    return t
             else:
                 return t
         else:
