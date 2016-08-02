@@ -25,7 +25,7 @@ link-citations: True
 
 # Model Checking of parametrized and fault tolerant systems
 
-## Counting Contraints
+## Counting Constraints
 
 Model checking usually relies on checking that the negation of a property is
 unsatisfiable. Properties and transitions can be expressed with first order
@@ -324,15 +324,128 @@ Lemma[Correctness]:
 
 # Solving Counting Constraints With Arrays
 
-## Syntax
+In this section, we describe an extension of the previous algorithm to deal with
+arrays.
+The syntax for $k$ arrays $a_1, …, a_k$ is described in Figure \ref{syntaxarray}. It is important to note
+that arrays are only accessed on the quantified variable, and not on a general
+term built on this variable (such as $x + 1$, or a nested array rerad). Removing this syntax restriction
+leads to an undecidable array theory fragment, as stated in @bradley2006s, even
+for small additions.
+
+An array has a size, which is an arithmetic variable of the theory
+$\mathbf{T}_\mathcal{Z}$. This is similar to @AlbertiGP16 (with the subtle
+difference that different arrays can have different size) but unlike @ConchonGKMZ12, whose fragment can not express system size. In the context of fault tolerant systems, this is an important details, as we typically want to specify that a fraction of the systems can be faulty. Hence, as soon as there is an array term in the counting constraints, the cardinality can no longer be infinite.
+
+It may be interesting to have array reads outside of the counting
+constraints, but they can be rewritten as counting constraints, like in
+@bradley2006s or @AlbertiGP16.
+
+\begin{figure}[h]
+\label{syntaxarray}
+\begin{grammar}
+	
+<counting constraints> $\psi(x)$ ::= $\psi(x)$ $\land$ $\psi(x)$
+\alt $\psi(x)$ $\lor$ $\psi(x)$
+\alt $\lnot$ $\psi(x)$
+\alt <atoms> of $\mathbf{T}_i$ where $x$ does not appear
+\alt $x \leq y$ where $y$ is a variable of $\mathbf{T}_\mathbb{Z}$
+\alt $y \textless x$ where $y$ is a variable of $\mathbf{T}_\mathbb{Z}$
+\alt $\phi(a_1[x], …, a_k[x])$ where $\phi$ does not have counting constraints
+
+
+\end{grammar}
+\caption{Array Extension}
+\label{formula}
+\end{figure}
+
 
 ## Algorithm
 
+The algorithm to solve counting constraints with arrays is mostly the same as
+\ref{arith}, the main difference is that the constraints on the arrays must be
+saved and then be consistent.
+
+During my internship, I experimented several possible algorithms to manipulate
+those constraints. The algorithm I describe here migth seem a bit brutal as it
+extensively rely on the underlying SMT solver, but it worked better than the
+other attempt, probably because a modern SMT solver can be much more efficient
+than a less optimized specialized algorithm.
+
+### Arithmetic And Arrays Domains
+
+Definition[Array Constraint]:
+An array constraint is a first order, quantifier free, formula whose free variables are the formula
+variables and the variables $a_1[\cdot], …, a_k[\cdot]$.
+
+Definition[Domain]:
+An domain is a finite set of symbolic intervals (definition
+\ref{symbolic}), every one of them associated to an array constraint (definition
+\ref{array}).
+
+An arithmetic domain (definition \ref{arithmetic}) can then be seen as a domain
+whose every symbolic interval is associated to the constraint `true`.
+
+\begin{figure}[h]
+\begin{prooftree}
+\AxiomC{}
+\UnaryInfC{$((-\infty, +\infty), \phi(a_1[x], …, a_k[x])), \emptyset \vdash \phi(a_1[x], …, a_k[x])$}
+\end{prooftree}
+\caption{Array Constraints}
+\end{figure}
+
+\begin{figure}[h]
+\begin{prooftree}
+\AxiomC{}
+\UnaryInfC{$([y; +\infty), \top), \emptyset \vdash y \leq x$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{}
+\UnaryInfC{$((-\infty; y), \top), \emptyset \vdash x < y$}
+\end{prooftree}
+
+\caption{Base Cases}
+\label{basecases}
+
+\end{figure}
+
+### Enforcing The Domains
+
 # Arrays
 
-[@de2009generalized]
+The previous algorithm transforms every array reads and write into an array
+constraint. This is not very efficient, because the underlying SMT solver has no
+clue regarding the consistency of the values it provides for an array read.
+That's why it was interesting to change this algorithm to make it work with a
+usual array theory of an SMT solver.
+
+Unfortunately, as our algorithm operates outside of the solver, the interactions
+they can have are quite limited. Thus, it is important to understand how the
+theory of arrays is usually implemented to make it work with the counting
+constraints algorithm described in the last section.
 
 ## The theory of arrays implemented in most SMT solvers
+
+A state of the art implementation of the theory of arrays is described in @de2009generalized. More specifically, it explains how works Z3.
+
+The only two operations on arrays are `select` and `store`. `(select a x)` access the array a at index x ($a[x]$), while
+`(store a x b)` creates a new array whose elements are the same as $a$ but for
+$x$, where it is set to $b$. $a[x]$ is `(select a x)`. The two axioms of this theory are:
+
+\begin{subequations}
+\begin{align}
+\forall a:(\sigma \implies \tau), i:\sigma, v:\tau\, .\, store(a, i, v)[i] = v
+\\
+\forall a:(\sigma \implies \tau), i:\sigma, j:\sigma\, .\, i \neq j \implies store(a, i, v)[j] = a[j]
+\end{align}
+
+
+Additionnaly, there is the extensionnality axiom:
+
+\begin{align}
+\forall a:(\sigma \implies \tau), b:(\sigma \implies \tau)\, .\, a \neq b \iff \exists i\: a[i] \implies a[i] \neq b[i]
+\end{align}
+\end{subequations}
 
 ## `select` and `store` with counting contraints
 
