@@ -9,8 +9,11 @@ header-includes:
   - \usepackage{color}
   - \let\oldhl\hyperlink 
   - \renewcommand{\hyperlink}[2]{\oldhl{#1}{\textcolor{red}{(#2)}}}
+  - \usepackage{algorithm}
+  - \usepackage[noend]{algpseudocode}
 numbersections: true
 subparagraph: true
+toc: true
 link-citations: True
 ---
 \newtheorem{definition}{Definition}
@@ -24,8 +27,28 @@ link-citations: True
 
 ## Counting Contraints
 
-Interesting because provides a restricted way to quantify, weaker than both
-existential and universal quantifications, but easier to solve. @ge2009complete
+Model checking usually relies on checking that the negation of a property is
+unsatisfiable. Properties and transitions can be expressed with first order
+formulas, with or without quantifiers. This problem is known to be undecidable @apt1986limits, that is why it is crucial to understand what is the class of formulas used to specify them, and to restrict them if possible.
+
+Counting constraints provide a way to specify how many integers satisfy a given
+predicate. Thus, it is a generalization of quantifiers over the integers. For
+instance, if $a$
+is an array of booleans of size $n$, the counting constraint $\sharp\{ x \ |\ a[x]\} > n/2$
+specify that more than half the array is set to `true`. An existential
+quantifier can be transformed into a constraint involving a cardinality greater
+than 1, and a universal quantifier into a counting constraint composed of a
+cardinality equal to 0 (in this case, the predicate will be the negation of the
+formula).
+
+They are very adapted to the class of problem we want to study, where the
+assumptions that a fraction of the systems can be faulty is unknown. However, a
+lot of problems can be modeled with a single level of quantification (i.e. there
+is no counting constraints inside counting constraints formulas). Thus, this
+problem can be restricted to this case and still be interesting, and provides a
+simplified version of quantifiers, while avoiding the requirement to support a
+more complete class of formulas. SMT formulas with a lot of quantifiers are indeed known to  be hard to solve
+@ge2009complete.
 
 # Solving Counting Constraints for arithmetic
 
@@ -182,6 +205,10 @@ properties, so as the resulting domains can then be used to compute the
 cardinality at no further cost. These properties are on both the domain and the
 assumptions associated to it.
 
+This algorithm uses a model (i.e. an application from the
+set containing all the theory variables to their concrete value), and computes
+the arithmetic domain in respect to this model.
+
 
 Property[Distincts]:
 If $S$ is an arithmetic domain, and $A$ a set of assumptions then, if $I, J \in
@@ -206,39 +233,94 @@ $J = [c, d)$, we want a new interval $K_{I, J} = [e, f)$ such as $A \cup A' \cup
 A_{S \sqcap S'} \implies x \in I \land x \in J \iff x \in K_{I, J}$.
 Then, the intersection of the domains can be defined as $S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S'\}$.
 
-Now, let's assume we have a model $\mathcal{M}$ (i.e. an application from the
-set containing all the theory variables to their concrete value).
+Now, let's assume we have a model $\mathcal{M}$.
 $x_\mathcal{M}$ is defined as the value of $x$ in this model, and more generally
 for any term $t$ of theory $T_{\mathbb{Z}}$ (and $+\infty$, $-\infty$),
 $t_{\mathcal{M}}$ is the interpretation of $t$ in this model.
 
 In what follows, we describe a way to compte $K_{I, j}$ as well as $A_{S \sqcap
-S'}$ in regards to the model, so as the assumptions are consitents (as the model
+S'}$ in regards to the model, so as the assumptions are consistents (and the model
 satifies them).
 
 Let $I = [a, b) \in S$ and $J = [c, d) \in S'$, 
 if $max(a_\mathcal{M}, c_\mathcal{M}) < min(b_\mathcal{M}, d_\mathcal{M})$,
-then $K_{I, J} = [max(a_\mathcal{M}, c_\mathcal{M}), min(b_\mathcal{M}, d_\mathcal{M}))$, else it is undefined (because in the model, the interpretation of the intervals are indeed disjoints).
+then $K_{I, J} = [max(a, c), min(b, d))$ (where $max(a, c)$ is $a$ if $a_\mathcal{M} > c_\mathcal{M}$, else $c$), else it is undefined (because in the model, the interpretation of the intervals are indeed disjoints).
 
-
-
-Lemma[Correctness]:
+So, this is the intersection of $I$ and $J$ guided by the model. Every time
+there is a decision to take (such as $a < c$), the values of the model are
+looked at. Those decisions must be recorded, as they are the assumptions
+required for this interpretation to be correct. The set $A_{S\sqcap S'}$ is
+composed of those decision. It is clear that the model $\mathcal{M}$ satisfies
+the set $A_{S \sqcap S'}$ (as well as $A$ and $A'$ by induction), thus $A_{S \sqcap S'} \cup A \cup A'$ is consistent.
 
 
 ## Algorithm to solve arithmetic counting contraints
 
+We describe an algorithm to solve a formula $F(\mathbf{y}, c_1, …, c_n) \land
+\bigwedge_{i = 1} ^n c_i = \sharp\{x\ |\ \phi_i(\mathbf{y}, c_1, …, c_n, x)\}$,
+where $F$ does not contain counting constraints.
 
-1. $F_1(c_1, …, c_n)$
-2. `check-sat`
-3. `push`
-4. $x < y, …$
-5. `add constraints`
-6. `check-sat`
+We assume we have an SMT solver that can solve formulas written with the
+theories $\mathbf{T}_\mathbb{Z}, \mathbf{T}_1, …, \mathbf{T}_m$. It needs to
+support some operations (besides the variable definitions): `assert` (adds
+a formula to the current context), `check-sat` (checks the satisfiability
+of the conjunction of the formulas in the current context), `push` (creates a
+new context with the current context formula), `pop` (restores the context to
+the last `push` call).
 
+\begin{algorithm}
+\caption{Satisfiability of arithmetic formula with counting constraints}\label{arith}
+\begin{algorithmic}[1]
+%\Procedure{MyProcedure}{}
+\State \Call{assert}{$F(\mathbf{y}, c_1, …, c_n)$}
+\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
+	\State \Call{push}{\ }
+	\State $A \gets \emptyset$
+	\ForAll{ $i$ in $[1..n]$}
+		\State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
+		$\mathcal{M}$}
+		\State $A \gets A \cup A_i$
+		\If{$S_i$ is infinite}
+			\State \Call{assert}{$\lnot \left( A \right)$}
+			\State \Call{continue}{}
+		\EndIf
+	\EndFor
+	\State \Call{assert}{$A$}
+	\State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} b - a$}
+	\If {\Call{check-sat}{\ } }
+		\State \Call{pop}{\ }
+		\State \Return{sat}
+	\EndIf
+	\State \Call{pop}{\ }
+	\State \Call{assert}{$\lnot \left( A \right)$}
+\EndWhile
+\State \Return{unsat}
+\end{algorithmic}
+\label{arith}
+\end{algorithm}
+
+The algorithm works as follows: it asks for a model $\mathcal{M}$ of the formula
+$F$, then interpret every counting constraints to a symbolic expression under some
+assumptions. The equality between those expressions and the $c_i$, as well as the
+assumptions are then enforced with an `assert`. Then, if the solver says it is satisfiable, the values of the $c_i$ in the new model respect the counting constraints equations.
+If it is not, then it means that the assumptions $A$ and the counting
+constraints equations are not consistent, thus $\lnot A$ can be asserted, and we
+can re-try.
 
 Lemma[Termination]:
+Algorithm \ref{arith} terminates.
 
-Lemma[Correctnes]:
+\begin{proof}
+In the former section, we explained how the assumptions set was computed. An
+assumption can be an equality, a disequality or an inequality between two terms
+that appear in the formulas $phi_i$. Thus, there is a finite number of possible
+set of assumptions.
+
+At every iteration, there is a $\text{assert}(\lnot A)$, hence the fact that there is
+a finite number of iteration.
+\end{proof}
+
+Lemma[Correctness]:
 
 # Solving Counting Constraints With Arrays
 
@@ -266,9 +348,6 @@ formalisation de dpll, particulièrement la partie des littéraux, etc
 
 # Generalization
 
+\newpage
+
 # References
-
-## Algorithm to solve arithmetic counting contraints
-
-Lemma[auie]:
-au
