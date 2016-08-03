@@ -13,7 +13,6 @@ header-includes:
   - \usepackage[noend]{algpseudocode}
 numbersections: true
 subparagraph: true
-toc: true
 link-citations: True
 ---
 \newtheorem{definition}{Definition}
@@ -416,8 +415,8 @@ whose every symbolic interval is associated to the constraint `true`.
 The previous algorithm transforms every array reads and write into an array
 constraint. This is not very efficient, because the underlying SMT solver has no
 clue regarding the consistency of the values it provides for an array read.
-That's why it was interesting to change this algorithm to make it work with a
-usual array theory of an SMT solver.
+That's why it is interesting to change this algorithm to make it work with a
+usual array theory of an SMT solver. The algorithm then has to take into account the decision that the SMT solver when it outputs the constraints, so as the result is consistent (i.e. the arrays are not defined twice).
 
 Unfortunately, as our algorithm operates outside of the solver, the interactions
 they can have are quite limited. Thus, it is important to understand how the
@@ -426,11 +425,11 @@ constraints algorithm described in the last section.
 
 ## The theory of arrays implemented in most SMT solvers
 
-A state of the art implementation of the theory of arrays is described in @de2009generalized. More specifically, it explains how works Z3.
+A state of the art implementation of the theory of arrays is described in @de2009generalized. More specifically, it explains how works the SMT solver Z3.
 
-The only two operations on arrays are `select` and `store`. `(select a x)` access the array a at index x ($a[x]$), while
+The only two operations on arrays are `select` and `store`. `(select a x)` access the array $a$ at index $x$ (also written $a[x]$), while
 `(store a x b)` creates a new array whose elements are the same as $a$ but for
-$x$, where it is set to $b$. $a[x]$ is `(select a x)`. The two axioms of this theory are:
+$x$, where it is set to $b$. The two axioms of this theory are:
 
 \begin{subequations}
 \begin{align}
@@ -446,6 +445,8 @@ Additionnaly, there is the extensionnality axiom:
 \forall a:(\sigma \implies \tau), b:(\sigma \implies \tau)\, .\, a \neq b \iff \exists i\: a[i] \implies a[i] \neq b[i]
 \end{align}
 \end{subequations}
+
+For the first two axioms, it is clear that the SMT solver is only going to take decisions about terms index which appear inside a `store` and a `select`.
 
 ## `select` and `store` with counting contraints
 
