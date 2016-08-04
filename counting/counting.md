@@ -1,6 +1,12 @@
 ---
 title: Solving Counting Constraints on First Order Formulas in SMT
 date: August 28, 2016
+numbersections: true
+subparagraph: true
+secnumdepth: 2
+link-citations: true
+toc: true
+lof: true
 header-includes:
   - \usepackage{tikz}
   - \usepackage{bussproofs}
@@ -11,9 +17,7 @@ header-includes:
   - \renewcommand{\hyperlink}[2]{\oldhl{#1}{\textcolor{red}{(#2)}}}
   - \usepackage{algorithm}
   - \usepackage[noend]{algpseudocode}
-numbersections: true
-subparagraph: true
-link-citations: True
+  - \setcounter{secnumdepth}{3}
 ---
 \newtheorem{definition}{Definition}
 \newtheorem{lemma}{Lemma}
@@ -321,6 +325,10 @@ a finite number of iteration.
 
 Lemma[Correctness]:
 
+#### Example
+
+Todo, will do that on the plane.
+
 # Solving Counting Constraints With Arrays
 
 In this section, we describe an extension of the previous algorithm to deal with
@@ -384,15 +392,13 @@ An domain is a finite set of symbolic intervals (definition
 An arithmetic domain (definition \ref{arithmetic}) can then be seen as a domain
 whose every symbolic interval is associated to the constraint `true`.
 
+Figure \ref{arraybases} introduces the rules  for the base cases of domain computations. The conjonction and the negation are still done according to the rules \ref{not} and \ref{and}.
+
 \begin{figure}[h]
 \begin{prooftree}
 \AxiomC{}
 \UnaryInfC{$((-\infty, +\infty), \phi(a_1[x], …, a_k[x])), \emptyset \vdash \phi(a_1[x], …, a_k[x])$}
 \end{prooftree}
-\caption{Array Constraints}
-\end{figure}
-
-\begin{figure}[h]
 \begin{prooftree}
 \AxiomC{}
 \UnaryInfC{$([y; +\infty), \top), \emptyset \vdash y \leq x$}
@@ -404,11 +410,71 @@ whose every symbolic interval is associated to the constraint `true`.
 \end{prooftree}
 
 \caption{Base Cases}
-\label{basecases}
-
+\label{arraybases}
 \end{figure}
 
+So, we need to redefine the operations of intersection ($S \sqcap S'$) and negation ($S^c$) for those domains.
+
+### Intersection and negation of the domains
+
+Let $S$ and $S'$ two domains. The intersection is done the same way it is done for arithmetic domains, but when intersecting two symbolic intervals, if the resulting intervals is not empty, then we associate to the result the conjonction of the two array constraints.
+
 ### Enforcing The Domains
+
+We now want to generate a set of constraints that are equivalent to the satisfiability of the formula and the counting constraints.
+
+We start from a set of $l$ domains (one for every counting constraints) and generate a set of arithmetic constraints.
+
+#### Slice
+
+The first operation we do is what we call _slicing_. It means that the domains must be transformed so as they all have the same intervals. In practice, we are looking for a subdivision of $[A, B)$ (where $A$ is the lower bound of every array index and $B$ the upper bound) which can be used to express every domains.
+This is a simple operation that I do not detail here, intuitively every bounds of the intervals are collected and then split into equality classes and ordered (in the meantime the set of assumptions may be made bigger).
+
+#### Partition
+
+At this point we have a set of domains who all have the same intervals but different array constraints associated to them. For an interval $I$, we consider every constraints associated to it, i.e. $\phi_1, …, \phi_l$. From these one we can create a set of formula $\psi_1, …, \psi_{l'}$ which are a partition\footnote{A partition is a set of formula $\psi_1, …, \psi_n$ such as $\psi_1 \lor … \lor \psi_n \equiv \top$ but $\forall i, j. \; \psi_i \land \psi_j \equiv \bot$.}. There can be at most $2^l$ formula, but of course that can be dramatically reduced in practice with heuristics such as memoization are inclusion detection.
+
+#### Arithmetic Constraints
+
+$I = [a, b)$ is supposed to be a finite interval (or it means that the array is accessed on an infinite intervals, which is not supposed to happen), so, it has a length $b - a$. As $\psi_1, …, \psi_{l'}$ is a partition, it holds that $b - a = \sum\limits_{i = 1}^{l'} \sharp\{x \ |\ \psi_i(a_1[x], …, a_n[x])\}$.We create a new variable $v_i$ (such as $0 \le v_i$) for every $\sharp\{x\ |\ \psi_i(a_1[x], …, a_n[x]\}$ and adds the constraint $b - a = \sum v_i$ to the solver. As long as every $\psi_i$ is satisfiable, then we can build arrays that satisfy $v_i = \sharp\{x\ |\ \psi_i(a_1[x], …, a_n[x]\}$. Hence, we must add $v_i > 0 \implies \psi_i(a_{i, 1}, …, a_{i, n})$ (with new variables $a_{i, 1}, …$.
+
+
+#### Algorithm
+
+\begin{algorithm}
+\caption{Satisfiability of arithmetic and formula with counting constraints}\label{arith}
+\begin{algorithmic}[1]
+%\Procedure{MyProcedure}{}
+\State \Call{assert}{$F(\mathbf{y}, c_1, …, c_n)$}
+\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
+	\State \Call{push}{\ }
+	\State $A \gets \emptyset$
+	\ForAll{ $i$ in $[1..n]$}
+		\State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
+		$\mathcal{M}$}
+		\State $A \gets A \cup A_i$
+		\If{$S_i$ is infinite}
+			\State \Call{assert}{$\lnot \left( A \right)$}
+			\State \Call{continue}{}
+		\EndIf
+	\EndFor
+	\State \Call{assert}{$A$}
+	\State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} b - a$}
+	\If {\Call{check-sat}{\ } }
+		\State \Call{pop}{\ }
+		\State \Return{sat}
+	\EndIf
+	\State \Call{pop}{\ }
+	\State \Call{assert}{$\lnot \left( A \right)$}
+\EndWhile
+\State \Return{unsat}
+\end{algorithmic}
+\label{arith}
+\end{algorithm}
+
+#### Example
+
+Todo, will do that on the plane.
 
 # Arrays
 
@@ -432,25 +498,27 @@ The only two operations on arrays are `select` and `store`. `(select a x)` acces
 $x$, where it is set to $b$. The two axioms of this theory are:
 
 \begin{subequations}
-\begin{align}
-\forall a:(\sigma \implies \tau), i:\sigma, v:\tau\, .\, store(a, i, v)[i] = v
-\\
-\forall a:(\sigma \implies \tau), i:\sigma, j:\sigma\, .\, i \neq j \implies store(a, i, v)[j] = a[j]
-\end{align}
+	\begin{align}
+		\forall a:(\sigma \implies \tau), i:\sigma, v:\tau\, .\, store(a, i, v)[i] = v
+		\\
+		\forall a:(\sigma \implies \tau), i:\sigma, j:\sigma\, .\, i \neq j \implies store(a, i, v)[j] = a[j]
+	\end{align}
 
 
-Additionnaly, there is the extensionnality axiom:
+	Additionnaly, there is the extensionnality axiom:
 
-\begin{align}
-\forall a:(\sigma \implies \tau), b:(\sigma \implies \tau)\, .\, a \neq b \iff \exists i\: a[i] \implies a[i] \neq b[i]
-\end{align}
+	\begin{align}
+		\forall a:(\sigma \implies \tau), b:(\sigma \implies \tau)\, .\, a \neq b \iff \exists i\: a[i] \implies a[i] \neq b[i]
+	\end{align}
 \end{subequations}
 
 For the first two axioms, it is clear that the SMT solver is only going to take decisions about terms index which appear inside a `store` and a `select`.
+An equality might introduce additional indexes to make two arrays different. That's why an array extracted from a model of an SMT solver always follows the same pattern: special values are defined for a finite number of terms (an over-approximation of those terms can be obtained by looking at the formula), and then a default value. And the default value does not matter, as long as there is no equality.
 
-## `select` and `store` with counting contraints
 
 ## Using an off-the-shelf SMT solver for arrays
+
+Thus, to ensure the consistency of the counting constraint algorithm and the SMT solver decisions about arrays, we only have to take into account the value at those index terms, and array equality if needed.
 
 # DPLL(T)
 
