@@ -6,7 +6,6 @@ subparagraph: true
 secnumdepth: 2
 link-citations: true
 toc: true
-lof: true
 header-includes:
   - \usepackage{tikz}
   - \usepackage{bussproofs}
@@ -14,7 +13,6 @@ header-includes:
   - \usepackage{amsthm}
   - \usepackage{color}
   - \let\oldhl\hyperlink 
-  - \renewcommand{\hyperlink}[2]{\oldhl{#1}{\textcolor{red}{(#2)}}}
   - \usepackage{algorithm}
   - \usepackage[noend]{algpseudocode}
   - \setcounter{secnumdepth}{3}
@@ -26,7 +24,11 @@ header-includes:
 
 # Introduction {-}
 
+TODO
+
 # Model Checking of parametrized and fault tolerant systems
+
+TODO
 
 ## Counting Constraints
 
@@ -44,31 +46,28 @@ than 1, and a universal quantifier into a counting constraint composed of a
 cardinality equal to 0 (in this case, the predicate will be the negation of the
 formula).
 
-They are very adapted to the class of problem we want to study, where the
-assumptions that a fraction of the systems can be faulty is unknown. However, a
+For the class of problems we want to study, they are very adapted to express properties of the systems, such as the maximum fraction of faulty components. However, dealing with several nested quantifiers is hard, and a
 lot of problems can be modeled with a single level of quantification (i.e. there
-is no counting constraints inside counting constraints formulas). Thus, this
+is no nested counting constraints terms inside other counting constraints). Thus, this
 problem can be restricted to this case and still be interesting, and provides a
 simplified version of quantifiers, while avoiding the requirement to support a
 more complete class of formulas. SMT formulas with a lot of quantifiers are indeed known to  be hard to solve
-@ge2009complete.
+\cite{ge2009complete}.
 
-# Solving Counting Constraints for arithmetic
+# Solving Counting Constraints for Arithmetic
 
 ## Syntax
 
 We consider a set of distinct theories $\mathbf{T}_\mathbb{Z}$,
 $\mathbf{T}_{eq}$,
 $\mathbf{T}_2$, …, $\mathbf{T}_n$, where $\mathbf{T}_\mathbb{Z}$ is the theory
-of $\mathbb{Z}$
-Atoms and variables of these theories are defined as usual. We work with
-formulas that are built with the syntax of \ref{grammar}. The terms of the form
+of $\mathbb{Z}$, and $\mathbf{T}_{eq}$ is the theory of equality between the other theory.
+Atoms and variables of these theories are defined as usual. In the following, a first order formula without quantifiers is defined with the grammar \ref{formula}. The terms of the form
 $c = \sharp\{ x\ |\ \psi(x) \}$ are called counting constraints. Here,
-$\sharp\{ x\ |\ \psi(x)\}$ denotes the cardinality of a set $S$ such as
+$\sharp\{ x\ |\ \psi(x)\}$ denotes the cardinality of a subset $S$ of $\mathcal{Z}$ such as
 $x \in S \iff \psi(x)$.
 
 \begin{figure}[h]
-\label{grammar}
 \begin{grammar}
 	
 <formulas> $\phi$ ::= $\phi$ $\land$ $\phi$
@@ -90,23 +89,28 @@ $x \in S \iff \psi(x)$.
 \label{formula}
 \end{figure}
 
-We consider a subclass of formula built on the syntax of Figure \ref{formula}, formulas of the form:
-
-$F(c_1, …, c_n, \mathbf{y}) \land \bigwedge\limits_{i=1}^n c_i = \sharp\{ x \ |\ \psi_i(x, c_1, …, c_n,
-\mathbf{y})\}$
+We consider a subclass of the formulas built on the syntax of Figure \ref{formula}, formulas of the form:
+\begin{equation}
+F(c_1, …, c_n, \mathbf{y}) \land \bigwedge\limits_{i=1}^n c_i = \sharp\{ x \ |\ \psi_i(x, c_1, …, c_n,
+\mathbf{y})\}
+\label{maingoal}
+\end{equation}
 
 where no counting constraints appear in $F$. While most formulas can be
-rewritten to this form, there are some corner cases that we discuss in the last
-section.
+rewritten to this form, there are some corner cases\footnote{If $\{x\ |\ \phi(x)\}$ is infinite, then $c = \sharp\{x\ |\ \phi(x)\}$ is necessarily `unsat`, and the semantics of $true \lor c = \sharp\{x\ |\ \phi(x)\}$ is unclear. In practice, we only deal with finite intervals, so we are not interested in those cases.}.
 
 We are going to explain a way to decide this formula, i.e. saying wether they
 are satisfiable, and if yes give a model that satisfies this formula.
 
-We assume that we already have a solver to solve formula without counting
+We assume that we already have a solver to solve formulas without counting
 constraints (which can give a model if the formula is `sat`).
 
 In @AlbertiGP16 and @schweikardt, there is already a way to solve those formula.
-However, while they definitively explain that the problem is decidable and why, they heavily rely on quantifier elimination and thus may not be very practical.
+However, while they definitively explain that the problem is decidable and why, they heavily rely on quantifier elimination and thus may not be very practical nor easily integrated in modern SMT solvers.
+
+\ 
+
+To solve a counting constraint $c = \sharp\{x\ |\ \phi{x}\}$, our algorithm symbolically computes the set $\{x\ |\ \phi{x}\}$ and express it size with an arithmetic formula. To do that, it needs to make additional assumptions on the formula free variables.
 
 ## Constraints Interpretation
 
@@ -130,10 +134,6 @@ bound.
 
 If S is an arithmetic domain, we abusively write $x \in S$ for $\left(\bigvee\limits_{I \in S} x \in I\right)$.
 We are going to prove that $(S, A) \vdash \phi(x, \mathbf{y})$ implies $A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \in S\right)$.
-
-%%Thus, it holds that $A \Rightarrow \left(\sharp \{ x \ | \ \phi(x, \mathbf{y}) \} = \sharp \left( \cup_{I \in S} I\right)\right)$.
-
-
 
 \begin{figure}[h]
 \begin{prooftree}
@@ -177,6 +177,8 @@ compute an arithmetic domain and an associated set of assumptions for a given
 formula.
 
 Definition[Domains intersection, $S \sqcap S'$ and $A_{S \sqcap S'}$]:
+If $S$ and $S'$ are two arithmetic domains associated to the assumptions $A$ and $A'$, then the intersection $S\sqcap S'$ is defined as an arithmetic domain such as\newline
+$A \cup A' \cup A_{S\sqcap S'} \implies \left(\left(x \in S \land x \in S'\right)\iff x \in S \sqcap S'\right)$\newline (where $x \in S$ means $\left(\bigwedge\limits_{I\in S} x \in I\right)$).
 
 Definition[Complementary Domains, $S^c$]:
 If $S$ is an arithmetic domain, then $S^c$ is defined as a set of intervals such
@@ -195,28 +197,23 @@ b\right) \lor \lnot \left( c \leq x \land x < d \right)$.
 \begin{proof}
 \end{proof}
 
-\begin{lemma}
-
-\end{lemma}
-
 ## Interpret a constraint with a model
 
 We are now interested in how we can write an algorithm which provides an arithmetic domain and a set of assumptions from a formula, following the inference rules of the former section.
-Hence, the only two operations which are not trivial are building the domains $S^c$ and $S \sqcap S'$.
+Hence, the only two missing operations are building the domains $S^c$ and $S \sqcap S'$.
 This algorithm must be correct, but we also want it to ensure several
 properties, so as the resulting domains can then be used to compute the
 cardinality at no further cost. These properties are on both the domain and the
 assumptions associated to it.
 
-This algorithm uses a model (i.e. an application from the
-set containing all the theory variables to their concrete value), and computes
+This algorithm uses a model (i.e. an assignment of the free variables of the formula $F$ of equation \ref{maingoal} whose it is a model of), and computes
 the arithmetic domain in respect to this model.
 
 
 Property[Distincts]:
 If $S$ is an arithmetic domain, and $A$ a set of assumptions then, if $I, J \in
 S$ and $I \neq J$, $A \implies (x \in I \implies x \not\in J)$. Thus, $\{x\ |\ x \in
-I\}$ and $\{x\ |\ x \in J\}$ are disjoints.
+I\}$ and $\{x\ |\ x \in J\}$ are disjoints\footnote{Here, $x \in I$ is still defined as $a \le x \land x < b$ if $I = [a, b)$.}.
 
 
 Property[Consistency]:
@@ -229,11 +226,12 @@ $A \implies \sharp\{ x \in S \} =
 \sum\limits_{[a, b) \in S} b - a$.
 
 
+#### Intersection
 $S$ and $S'$ are both arithmetic domain, i.e. sets of symbolic intervals. Thus,
 to do the intersection of the domains, we are going to do the intersection of
 an interval $I$ of $S$ and an interval $J$ of $S'$. So, if $I = [a, b)$ and
 $J = [c, d)$, we want a new interval $K_{I, J} = [e, f)$ such as $A \cup A' \cup
-A_{S \sqcap S'} \implies x \in I \land x \in J \iff x \in K_{I, J}$.
+A_{S \sqcap S'} \implies \left(x \in I \land x \in J \iff x \in K_{I, J}\right)$.
 Then, the intersection of the domains can be defined as $S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S'\}$.
 
 Now, let's assume we have a model $\mathcal{M}$.
@@ -254,22 +252,31 @@ there is a decision to take (such as $a < c$), the values of the model are
 looked at. Those decisions must be recorded, as they are the assumptions
 required for this interpretation to be correct. The set $A_{S\sqcap S'}$ is
 composed of those decision. It is clear that the model $\mathcal{M}$ satisfies
-the set $A_{S \sqcap S'}$ (as well as $A$ and $A'$ by induction), thus $A_{S \sqcap S'} \cup A \cup A'$ is consistent.
+the set $A_{S \sqcap S'}$ (as well as $A$ and $A'$ by induction), thus $A_{S \sqcap S'} \cup A \cup A'$ is consistent, hence property \ref{consistency}.
+
+It is also clear that by induction, if $S$ and $S'$ have the property \ref{distincts}, $S\sqcap S'$ also respect this property.
+
+#### Negation
+
+TODO
 
 
 ## Algorithm to solve arithmetic counting contraints
 
-We describe an algorithm to solve a formula $F(\mathbf{y}, c_1, …, c_n) \land
-\bigwedge_{i = 1} ^n c_i = \sharp\{x\ |\ \phi_i(\mathbf{y}, c_1, …, c_n, x)\}$,
+We describe an algorithm to solve a formula:
+\begin{equation}
+F(\mathbf{y}, c_1, …, c_n) \land
+\bigwedge_{i = 1} ^n c_i = \sharp\{x\ |\ \phi_i(\mathbf{y}, c_1, …, c_n, x)\}
+\end{equation}
 where $F$ does not contain counting constraints.
 
 We assume we have an SMT solver that can solve formulas written with the
-theories $\mathbf{T}_\mathbb{Z}, \mathbf{T}_1, …, \mathbf{T}_m$. It needs to
+theories $\mathbf{T}_\mathbb{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, …, \mathbf{T}_m$. It needs to
 support some operations (besides the variable definitions): `assert` (adds
 a formula to the current context), `check-sat` (checks the satisfiability
 of the conjunction of the formulas in the current context), `push` (creates a
 new context with the current context formula), `pop` (restores the context to
-the last `push` call).
+the last `push` call). These operations are supported by most modern SMT solvers which can work in an incremental way.
 
 \begin{algorithm}
 \caption{Satisfiability of arithmetic formula with counting constraints}\label{arith}
@@ -284,25 +291,25 @@ the last `push` call).
 		$\mathcal{M}$}
 		\State $A \gets A \cup A_i$
 		\If{$S_i$ is infinite}
-			\State \Call{assert}{$\lnot \left( A \right)$}
+			\State \Call{assert}{$\lnot A$}
 			\State \Call{continue}{}
 		\EndIf
 	\EndFor
 	\State \Call{assert}{$A$}
-	\State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} b - a$}
+	\State \textsc{assert}$\left(\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} b - a\right)$
 	\If {\Call{check-sat}{\ } }
 		\State \Call{pop}{\ }
 		\State \Return{sat}
 	\EndIf
 	\State \Call{pop}{\ }
-	\State \Call{assert}{$\lnot \left( A \right)$}
+	\State \Call{assert}{$\lnot A$}
 \EndWhile
 \State \Return{unsat}
 \end{algorithmic}
 \label{arith}
 \end{algorithm}
 
-The algorithm works as follows: it asks for a model $\mathcal{M}$ of the formula
+The algorithm \ref{arith} works as follows: it asks for a model $\mathcal{M}$ of the formula
 $F$, then interpret every counting constraints to a symbolic expression under some
 assumptions. The equality between those expressions and the $c_i$, as well as the
 assumptions are then enforced with an `assert`. Then, if the solver says it is satisfiable, the values of the $c_i$ in the new model respect the counting constraints equations.
@@ -316,20 +323,22 @@ Algorithm \ref{arith} terminates.
 \begin{proof}
 In the former section, we explained how the assumptions set was computed. An
 assumption can be an equality, a disequality or an inequality between two terms
-that appear in the formulas $phi_i$. Thus, there is a finite number of possible
+that appear in the formulas $\phi_i$. Thus, there is a finite number of possible
 set of assumptions.
 
-At every iteration, there is a $\text{assert}(\lnot A)$, hence the fact that there is
-a finite number of iteration.
+At every iteration, there is a $\text{\textsc{assert}}(\lnot A)$, hence the fact that there is
+a finite number of iterations.
 \end{proof}
 
 Lemma[Correctness]:
 
+\begin{proof}TODO\end{proof}
+
 #### Example
 
-Todo, will do that on the plane.
+TODO
 
-# Solving Counting Constraints With Arrays
+# Solving Counting Constraints with Arrays
 
 In this section, we describe an extension of the previous algorithm to deal with
 arrays.
@@ -337,18 +346,19 @@ The syntax for $k$ arrays $a_1, …, a_k$ is described in Figure \ref{syntaxarra
 that arrays are only accessed on the quantified variable, and not on a general
 term built on this variable (such as $x + 1$, or a nested array rerad). Removing this syntax restriction
 leads to an undecidable array theory fragment, as stated in @bradley2006s, even
-for small additions.
+for small additions to the fragment.
 
 An array has a size, which is an arithmetic variable of the theory
 $\mathbf{T}_\mathcal{Z}$. This is similar to @AlbertiGP16 (with the subtle
-difference that different arrays can have different size) but unlike @ConchonGKMZ12, whose fragment can not express system size. In the context of fault tolerant systems, this is an important details, as we typically want to specify that a fraction of the systems can be faulty. Hence, as soon as there is an array term in the counting constraints, the cardinality can no longer be infinite.
+difference that different arrays can have different size) but unlike @ConchonGKMZ12, whose fragment does not provide a syntax to express array length. In the context of fault tolerant systems, this is an important detail, as we typically want to specify that a fraction of the systems can be faulty.
+
+As soon as there is an array term in the counting constraints, the cardinality can no longer be infinite, as the array can only be accessed on a finite interval.
 
 It may be interesting to have array reads outside of the counting
 constraints, but they can be rewritten as counting constraints, like in
-@bradley2006s or @AlbertiGP16.
+@bradley2006s or @AlbertiGP16. In the next section we explain how this algorithm can be changed to work with the usual arrays of an SMT solver.
 
 \begin{figure}[h]
-\label{syntaxarray}
 \begin{grammar}
 	
 <counting constraints> $\psi(x)$ ::= $\psi(x)$ $\land$ $\psi(x)$
@@ -362,27 +372,27 @@ constraints, but they can be rewritten as counting constraints, like in
 
 \end{grammar}
 \caption{Array Extension}
-\label{formula}
+\label{syntaxarray}
 \end{figure}
 
 
 ## Algorithm
 
 The algorithm to solve counting constraints with arrays is mostly the same as
-\ref{arith}, the main difference is that the constraints on the arrays must be
+algorithm \ref{arith}, the main difference is that the constraints on the arrays must be
 saved and then be consistent.
 
 During my internship, I experimented several possible algorithms to manipulate
 those constraints. The algorithm I describe here migth seem a bit brutal as it
 extensively rely on the underlying SMT solver, but it worked better than the
-other attempt, probably because a modern SMT solver can be much more efficient
+other attempts, probably because a modern SMT solver can be much more efficient
 than a less optimized specialized algorithm.
 
 ### Arithmetic And Arrays Domains
 
 Definition[Array Constraint]:
-An array constraint is a first order, quantifier free, formula whose free variables are the formula
-variables and the variables $a_1[\cdot], …, a_k[\cdot]$.
+An array constraint is a first order, quantifier free, formula whose free variables are the free variables of the formula
+and the variables $a_1[\cdot], …, a_k[\cdot]$.
 
 Definition[Domain]:
 An domain is a finite set of symbolic intervals (definition
@@ -419,7 +429,7 @@ So, we need to redefine the operations of intersection ($S \sqcap S'$) and negat
 
 Let $S$ and $S'$ two domains. The intersection is done the same way it is done for arithmetic domains, but when intersecting two symbolic intervals, if the resulting intervals is not empty, then we associate to the result the conjonction of the two array constraints.
 
-### Enforcing The Domains
+### Enforcing the Domains
 
 We now want to generate a set of constraints that are equivalent to the satisfiability of the formula and the counting constraints.
 
@@ -428,7 +438,7 @@ We start from a set of $l$ domains (one for every counting constraints) and gene
 #### Slice
 
 The first operation we do is what we call _slicing_. It means that the domains must be transformed so as they all have the same intervals. In practice, we are looking for a subdivision of $[A, B)$ (where $A$ is the lower bound of every array index and $B$ the upper bound) which can be used to express every domains.
-This is a simple operation that I do not detail here, intuitively every bounds of the intervals are collected and then split into equality classes and ordered (in the meantime the set of assumptions may be made bigger).
+This is a simple operation that I do not detail here, intuitively every bound of the intervals is collected, then they are split into equality classes and ordered (in the meantime the set of assumptions may be made bigger).
 
 #### Partition
 
@@ -441,7 +451,9 @@ $I = [a, b)$ is supposed to be a finite interval (or it means that the array is 
 
 #### Algorithm
 
-\begin{algorithm}
+See algorithm \ref{arrayalgo}.
+
+\begin{algorithm}[h]
 \caption{Satisfiability of arithmetic and formula with counting constraints}\label{arith}
 \begin{algorithmic}[1]
 %\Procedure{MyProcedure}{}
@@ -458,8 +470,12 @@ $I = [a, b)$ is supposed to be a finite interval (or it means that the array is 
 			\State \Call{continue}{}
 		\EndIf
 	\EndFor
+	\State \Call{slice}{$(S_i)_i$}
+	\State \Call{partition}{$(S_i)_i$}
 	\State \Call{assert}{$A$}
-	\State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} b - a$}
+	\State \Comment{$v_\alpha$ is a variable corresponding to $phi_\alpha$, that $c_i$ selects}
+	\State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} \sum\limits_{\alpha} v_{\alpha}$}
+	\State \Call{assert-constraints}{$(S_i)_i$}
 	\If {\Call{check-sat}{\ } }
 		\State \Call{pop}{\ }
 		\State \Return{sat}
@@ -469,12 +485,12 @@ $I = [a, b)$ is supposed to be a finite interval (or it means that the array is 
 \EndWhile
 \State \Return{unsat}
 \end{algorithmic}
-\label{arith}
+\label{arrayalgo}
 \end{algorithm}
 
 #### Example
 
-Todo, will do that on the plane.
+TODO
 
 # Arrays
 
@@ -520,16 +536,28 @@ An equality might introduce additional indexes to make two arrays different. Tha
 
 Thus, to ensure the consistency of the counting constraint algorithm and the SMT solver decisions about arrays, we only have to take into account the value at those index terms, and array equality if needed.
 
+The first problem can be solved by tracking those index terms, then looking at the model which slice they belong to, and group them by slice. Then, for every array constraint $\phi_\alpha$ of this slice, some new clauses must be sent to the solver to ensure the consistency of this values decided by the SMT solver with the number of $x$ which satisfies $\phi_\alpha$
+
+The equality between two arrays must also be tracked, they must be taken into account when the arithmetic constraints are expressed at the end of the algorithm by adding new array constraints. Some heuristics (such as substitution of the arrays when there is equality) can also be used.
+
 # DPLL(T)
 
-## Basic Principles
+## Introduction
 
-formalisation de dpll, particulièrement la partie des littéraux, etc
+TODO
 
 ## Integration with a general purpose DPLL based SMT solver
 
-# Generalization
+Our algorithm works by assuming a set of assumptions and checking that cardinality values that they imply is consistent. The worst case for the assumptions is to be a total ordering over every integer variable and an assumptions on every atom of the formula. The number of total ordering over $n$ variables is $n!$\footnote{More than that when the case where two variables are equal is taken into account.}, which makes the algorithm unpractical if there is not enough constraints on those variables in the formula.
+
+That is why it would be interesting to have a better explanation of why it is not `sat` and not only learn that the formula is `unsat` with this particular ordering. That requires an explanation from the SMT solver and a better integration with both the arithmetic theory and the arrays theory.
+
+Furthermore, partial assumptions are sufficient to compute the bounds of a cardinality, and may also be sufficient to detect an inconsistency earlier in the solving of the formula, hence avoiding useless computations. Some work for abstract sets has already be done in this direction @cardinalityset.
+
+The way the algorithm works is not very different from the way a theory is usually modeled in DPLL(T) based solver, the main differences being that it has nested formula and has to interact with the array and arithmetic theories. So, adapting it to be just another theory in a solver may be worthwhile.
 
 \newpage
+
+# Conclusion {-}
 
 # References
