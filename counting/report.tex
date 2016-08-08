@@ -48,49 +48,48 @@
 
 \newtheorem{definition}{Definition} \newtheorem{lemma}{Lemma}
 \newtheorem{theorem}{Theorem} \newtheorem{property}{Property}
+\newtheorem{example}{Example}
 
 \section*{Introduction}\label{introduction}
 \addcontentsline{toc}{section}{Introduction}
 
-TODO
+%TODO
 
-\section{Model Checking of parametrized and fault tolerant systems}
+%\section{Model Checking of parametrized and fault tolerant systems}
 
-TODO
+%TODO
 
-\subsection{Counting Constraints}
+%\subsection{Counting Constraints}
 
-Model checking usually relies on checking that the negation of a
-property is unsatisfiable. Properties and transitions can be expressed
-with first order formulas, with or without quantifiers. This problem is
-known to be undecidable \cite{apt1986limits}, that
-is why it is crucial to understand what is the class of formulas used to
-specify them, and to restrict them if possible.
+%Model checking usually relies on checking that the negation of a
+%property is unsatisfiable. Properties and transitions can be expressed
+%with first order formulas, with or without quantifiers. This problem is
+%known to be undecidable \cite{apt1986limits}, that
+%is why it is crucial to understand what is the class of formulas used to
+%specify them, and to restrict them if possible.
 
-Counting constraints provide a way to specify how many integers satisfy
-a given predicate. Thus, it is a generalization of quantifiers over the
-integers. For instance, if $a$ is an array of booleans of size $n$,
-the counting constraint $\sharp\{ x \ |\ a[x]\} > n/2$ specify that
-more than half the array is set to \texttt{true}. An existential
-quantifier can be transformed into a constraint involving a cardinality
-greater than 1, and a universal quantifier into a counting constraint
-composed of a cardinality equal to 0 (in this case, the predicate will
-be the negation of the formula).
+%Counting constraints provide a way to specify how many integers satisfy
+%a given predicate. Thus, it is a generalization of quantifiers over the
+%integers. For instance, if $a$ is an array of booleans of size $n$,
+%the counting constraint $\sharp\{ x \ |\ a[x]\} > n/2$ specify that
+%more than half the array is set to \texttt{true}. An existential
+%quantifier can be transformed into a constraint involving a cardinality
+%greater than 1, and a universal quantifier into a counting constraint
+%composed of a cardinality equal to 0 (in this case, the predicate will
+%be the negation of the formula).
+%
+%For the class of problems we want to study, they are very adapted to
+%express properties of the systems, such as the maximum fraction of
+%faulty components. However, dealing with several nested quantifiers is
+%hard, and a lot of problems can be modeled with a single level of
+%quantification (i.e.~there is no nested counting constraints terms
+%inside other counting constraints). Thus, this problem can be restricted
+%to this case and still be interesting, and provides a simplified version
+%of quantifiers, while avoiding the requirement to support a more
+%complete class of formulas. SMT formulas with a lot of quantifiers are
+%indeed known to be hard to solve \cite{ge2009complete}.
 
-For the class of problems we want to study, they are very adapted to
-express properties of the systems, such as the maximum fraction of
-faulty components. However, dealing with several nested quantifiers is
-hard, and a lot of problems can be modeled with a single level of
-quantification (i.e.~there is no nested counting constraints terms
-inside other counting constraints). Thus, this problem can be restricted
-to this case and still be interesting, and provides a simplified version
-of quantifiers, while avoiding the requirement to support a more
-complete class of formulas. SMT formulas with a lot of quantifiers are
-indeed known to be hard to solve \cite{ge2009complete}.
-
-\section{Solving Counting Constraints for Arithmetic}
-
-\subsection{Syntax}
+\section{Counting Constraints for Arithmetic}
 
 We consider a set of distinct theories $\mathbf{T}_\mathbb{Z}$,
 $\mathbf{T}_{eq}$, $\mathbf{T}_2$, \ldots{}, $\mathbf{T}_n$, where
@@ -99,9 +98,9 @@ $\mathbf{T}_{eq}$ is the theory of equality between the other theory.
 Atoms and variables of these theories are defined as usual. In the
 following, a first order formula without quantifiers is defined with the
 grammar \ref{formula}. The terms of the form
-$c = \sharp\{ x\ |\ \psi(x) \}$ are called counting constraints. Here,
+$c = \sharp\{ x\ |\ \psi(x) \}$ are called counting constraints. 
 $\sharp\{ x\ |\ \psi(x)\}$ denotes the cardinality of a subset $S$
-of $\mathcal{Z}$ such as $x \in S \iff \psi(x)$.
+of $\mathbb{Z}$ such as $x \in S \iff \psi(x)$.
 
 \begin{figure}[h]
 \begin{grammar}
@@ -110,15 +109,7 @@ of $\mathcal{Z}$ such as $x \in S \iff \psi(x)$.
 \alt $\phi$ $\lor$ $\phi$
 \alt $\lnot$ $\phi$
 \alt <atoms> of $\mathbf{T}_i$
-\alt $c = \sharp\{ x\ |\ \psi(x) \}$ where $c$ is a variable of $\mathbf{T}_\mathbb{Z}$
-
-<counting constraints> $\psi(x)$ ::= $\psi(x)$ $\land$ $\psi(x)$
-\alt $\psi(x)$ $\lor$ $\psi(x)$
-\alt $\lnot$ $\psi(x)$
-\alt <atoms> of $\mathbf{T}_i$ where $x$ does not appear
-\alt $x \leq y$ where $y$ is a variable of $\mathbf{T}_\mathbb{Z}$
-\alt $y \textless x$ where $y$ is a variable of $\mathbf{T}_\mathbb{Z}$
-
+\alt $c = \sharp\{ x \mid y\ \text{\textless}\ x \le z \land \phi(x) \}$ where $c, y, z$ are variables of $\mathbf{T}_\mathbb{Z}$
 
 \end{grammar}
 
@@ -126,46 +117,106 @@ of $\mathcal{Z}$ such as $x \in S \iff \psi(x)$.
 \label{formula}
 \end{figure}
 
-We consider a subclass of the formulas built on the syntax of Figure
-\ref{formula}, formulas of the form:
+\begin{example}
+The formula $c = \{x \mid 0 < x \le 10 \land 5 < x \le 10\}$ is equivalent to the formula $c = 5$.
+\end{example}
 
+\subparagraph{Example 2} The formula $c = \{x \mid 0 < x \le c + 1\} \land c > 0$ is equivalent to the formula $c = c+1 \land c >0$ and is not satisfiable.
+
+\subparagraph{Example 3} Let  $F \equiv c = \{x \mid 0 < x \le y \land 0 < x \le z\}$. In this case, $c$ can not be directly expressed with an arithmetic expression, as the symbolic value depends on wether $y < z$. However, with a disjonction on $y >z$, $F$ is also equivalent to a pure arithmetic formula $(y > z \implies c = y) \lor (y \le z \implies c = z)$.
+
+Counting constraints provide a way to specify how many integers satisfy
+a given predicate. Thus, it is a generalization of quantifiers over the
+integers. An existential
+quantifier can be transformed into a constraint involving a cardinality
+greater than 1, and a universal quantifier into a counting constraint
+composed of a cardinality equal to 0 (in this case, the predicate will
+be the negation of the formula).
+
+However, dealing with quantifiers in SMT formula is known to be a hard problem. Some theories
+support quantifiers elimination, such as arithmetic \cite{cooper}, but these algorithms may not be very
+efficient (even for arithmetic it can be better to instanciate the quantifiers \cite{dutertre2015solving}) and quantifiers elimination is not possible in every theory \cite{bradley2006s}.
+
+That's why we look at a restricted subset of formulas built on the syntax of Figure \ref{formula}:
+there is no nested counting constraints. Furthermore, to keep the algorithm simple, if the
+quantified variable is $x$, every atom of the counting constraint where $x$ appears must be of the form $x < t$ or $t \le x$,
+where $t$ is an arithmetic term where $x$ does not appear. Without loss of generality, we only
+consider the case where $t$  is an arithmetic variable (a new variable equal to an arbitrary term
+can always be added to the formula).
+
+Moreover, it can be shown that every formula in this class is equivalent to a formula of the form:
 \begin{equation}
 F(c_1, \ldots, c_n, \mathbf{y}) \land \bigwedge\limits_{i=1}^n c_i = \sharp\{ x \ |\ \psi_i(x, c_1, \ldots, c_n,
 \mathbf{y})\}
 \label{maingoal}
 \end{equation}
+where no counting constraints appear in $F$.
 
-where no counting constraints appear in $F$. While most formulas can
-be rewritten to this form, there are some corner
-cases\footnote{If $\{x\ |\ \phi(x)\}$ is infinite, then $c = \sharp\{x\ |\ \phi(x)\}$ is necessarily `unsat`, and the semantics of $true \lor c = \sharp\{x\ |\ \phi(x)\}$ is unclear. In practice, we only deal with finite intervals, so we are not interested in those cases.}.
-
-We are going to explain a way to decide this formula, i.e.~saying wether
+We are going to explain a way to decide this formula, i.e. saying wether
 they are satisfiable, and if yes give a model that satisfies this
 formula.
+
+\subsection{Decision Procedure}
+\subsubsection{Overview}
 
 We assume that we already have a solver to solve formulas without
 counting constraints (which can give a model if the formula is
 \texttt{sat}).
 
-In \cite{AlbertiGP16, schweikardt}, there is already a way to solve
-those formula. However, while they definitively explain that the problem
-is decidable and why, they heavily rely on quantifier elimination and
-thus may not be very practical nor easily integrated in modern SMT
-solvers.
+The algorithm translates every counting constraints in arithmetic expressions. To do that, it needs
+to make additional assumptions (example 3). We use models constructed by the SMT solver to enumerate every possible set of
+assumptions compatible with formula $F$.
 
-~
+It works as follows: first, the formula without the counting constraints is forwarded to
+the solver we already have. If it is `unsat`, then the formula with the counting constraints is also
+`unsat`. Else, we get a model. Then, the algorithm computes a symbolic arithmetic expression for every counting
+constraints, under the assumptions that hold in the model. Then, both the assumptions and the value
+of the counting constraints are added as new clauses to the solver. If it answers `sat`, then we
+have a model which satisfies the formula with the counting constraints. Else, the solver is
+restored to it previous state, the negation of the assumptions are added to the solver and we
+retry the procedure.
 
-To solve a counting constraint $c = \sharp\{x\ |\ \phi{x}\}$, our
-algorithm symbolically computes the set $\{x\ |\ \phi{x}\}$ and
-express it size with an arithmetic formula. To do that, it needs to make
-additional assumptions on the formula free variables.
+A pseudo-code description can be seen in algorithm \ref{arith}.
 
-\subsection{Constraints
+\begin{algorithm}[h]
+\caption{Satisfiability of arithmetic formula with counting constraints}\label{arith}
+\begin{algorithmic}[1]
+%\Procedure{MyProcedure}{}
+\State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
+\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
+    \State \Call{push}{\ }
+    \State $A \gets \emptyset$
+    \ForAll{ $i$ in $[1..n]$}
+        \State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
+        $\mathcal{M}$}
+        \State $A \gets A \cup A_i$
+        \If{$S_i$ is infinite}
+            \State \Call{assert}{$\lnot A$}
+            \State \Call{continue}{}
+        \EndIf
+    \EndFor
+    \State \Call{assert}{$A$}
+    \State \textsc{assert}$\left(\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} b - a\right)$
+    \If {\Call{check-sat}{\ } }
+        \State \Call{pop}{\ }
+        \State \Return{sat}
+    \EndIf
+    \State \Call{pop}{\ }
+    \State \Call{assert}{$\lnot A$}
+\EndWhile
+\State \Return{unsat}
+\end{algorithmic}
+\label{arith}
+\end{algorithm}
+
+\begin{example}
+\end{example}
+\subsubsection{Constraints
 Interpretation}\label{constraints-interpretation}
 
 \begin{definition}[Assumptions]
 
-We call assumptions a set $A$ whose elements are atoms of the theories
+We call assumptions a set $A$ whose elements are litterals of the theories
 $\mathbf{T}_i$. In the context of a first order formula, writing $A$
 means the conjuctions of the atoms of $A$.
 
@@ -191,9 +242,9 @@ It is said to be finite if none of the bounds are infinite.
 \begin{definition}[Arithmetic Domain]
 
 An arithmetic domain is a finite set of symbolic intervals (definition
-\ref{symbolic}). It is usually associated to some assumptions
+\ref{symbolic}). It is  associated to some assumptions
 (definition \ref{assumptions}) which make them disjoint and ensure that
-the lower bound of an interval is actually lower than the upper bound.
+the lower bound of an interval is lower than the upper bound.
 
 \label{arithmetic}
 
@@ -288,7 +339,7 @@ $A \implies \forall x\ \lnot \left( a \leq x \land x < b\right) \lor \lnot \left
 \begin{proof}
 \end{proof}
 
-\subsection{Interpret a constraint with a
+\subsubsection{Interpret a constraint with a
 model}\label{interpret-a-constraint-with-a-model}
 
 We are now interested in how we can write an algorithm which provides an
@@ -378,7 +429,7 @@ property \ref{distincts}, $S\sqcap S'$ also respect this property.
 
 TODO
 
-\subsection{Algorithm to solve arithmetic counting
+\subsubsection{Algorithm to solve arithmetic counting
 contraints}\label{algorithm-to-solve-arithmetic-counting-contraints}
 
 We describe an algorithm to solve a formula:
@@ -400,37 +451,6 @@ formulas in the current context), \texttt{push} (creates a new context
 with the current context formula), \texttt{pop} (restores the context to
 the last \texttt{push} call). These operations are supported by most
 modern SMT solvers which can work in an incremental way.
-
-\begin{algorithm}
-\caption{Satisfiability of arithmetic formula with counting constraints}\label{arith}
-\begin{algorithmic}[1]
-%\Procedure{MyProcedure}{}
-\State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
-\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
-    \State \Call{push}{\ }
-    \State $A \gets \emptyset$
-    \ForAll{ $i$ in $[1..n]$}
-        \State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
-        $\mathcal{M}$}
-        \State $A \gets A \cup A_i$
-        \If{$S_i$ is infinite}
-            \State \Call{assert}{$\lnot A$}
-            \State \Call{continue}{}
-        \EndIf
-    \EndFor
-    \State \Call{assert}{$A$}
-    \State \textsc{assert}$\left(\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} b - a\right)$
-    \If {\Call{check-sat}{\ } }
-        \State \Call{pop}{\ }
-        \State \Return{sat}
-    \EndIf
-    \State \Call{pop}{\ }
-    \State \Call{assert}{$\lnot A$}
-\EndWhile
-\State \Return{unsat}
-\end{algorithmic}
-\label{arith}
-\end{algorithm}
 
 The algorithm \ref{arith} works as follows: it asks for a model
 $\mathcal{M}$ of the formula $F$, then interpret every counting
@@ -476,6 +496,8 @@ a finite number of iterations.
 
 TODO
 
+\subsection{Implementation}
+
 \section{Solving Counting Constraints with
 Arrays}\label{solving-counting-constraints-with-arrays}
 
@@ -504,7 +526,7 @@ on a finite interval.
 
 It may be interesting to have array reads outside of the counting
 constraints, but they can be rewritten as counting constraints, like in
-\cite{ref-bradley2006s} or
+\cite{bradley2006s} or
 \cite{AlbertiGP16}. In the next section we explain
 how this algorithm can be changed to work with the usual arrays of an
 SMT solver.
@@ -653,7 +675,7 @@ $a_{i, 1}, \ldots$.
 See algorithm \ref{arrayalgo}.
 
 \begin{algorithm}[h]
-\caption{Satisfiability of arithmetic and formula with counting constraints}\label{arith}
+\caption{Satisfiability of arithmetic and formula with counting constraints}
 \begin{algorithmic}[1]
 %\Procedure{MyProcedure}{}
 \State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
@@ -805,7 +827,16 @@ solver may be worthwhile.
 
 \section*{Conclusion}
 
+%related work
+%optimization stuff
+
+%In \cite{AlbertiGP16, schweikardt}, there is already a way to solve
+%those formula. However, while they definitively explain that the problem
+%is decidable and why, they heavily rely on quantifier elimination and
+%thus may not be very practical nor easily integrated in modern SMT
+%solvers.
+
 \bibliographystyle{plain}
-\bibliography{counting}
+\bibliography{report}
 
 \end{document}
