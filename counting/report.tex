@@ -2,6 +2,7 @@
 \usepackage{lmodern}
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
+\usepackage[utf8]{inputenc}
 \usepackage{fixltx2e} % provides \textsubscript
 % use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -50,8 +51,32 @@
 \newtheorem{theorem}{Theorem} \newtheorem{property}{Property}
 \newtheorem{example}{Example}
 
+\newpage
+
 \section*{Introduction}\label{introduction}
 \addcontentsline{toc}{section}{Introduction}
+
+
+Model checking is used to prove properties of a system. A system is modeled by a set
+of initial states and transitions. State transitions, initial states and properties are expressed in
+first order logic. We are interested in infinite state systems. As it is not possible to enumerate
+every state and verify they satisfy the properties, the goal is to find invariants of the system,
+which are strengthening of the properties. Several techniques can be used to solve this problem,
+such as bounded model checking, IC3\cite{pdr}, or k-induction. For infinite state systems, model
+checking is done symbolically and uses satisfiablity modulo theories (SMT) solvers.
+
+Extending this to support analysis of parametric systems is of major interest to prove correctness
+of a large number of protocols, such as fault tolerant protocols\cite{AlbertiGP16} or cache coherence
+protocols\cite{ConchonGKMZ12}. A key issue is handling efficiently cardinality constraints in
+SMT.
+
+During my internship, I worked on a decision procedure for counting constraints in arithmetic
+(section 1), and then on an extension for counting constraints with arrays. Both decision
+procedures were implemented as an overlay to an existing SMT solver.
+
+I did my internship at SRI, California, under the supervision of Bruno Dutertre and Dejan
+Jovanović.
+
 
 %TODO
 
@@ -121,9 +146,11 @@ of $\mathbb{Z}$ such as $x \in S \iff \psi(x)$.
 The formula $c = \{x \mid 0 < x \le 10 \land 5 < x \le 10\}$ is equivalent to the formula $c = 5$.
 \end{example}
 
-\subparagraph{Example 2} The formula $c = \{x \mid 0 < x \le c + 1\} \land c > 0$ is equivalent to the formula $c = c+1 \land c >0$ and is not satisfiable.
+\begin{example} The formula $c = \{x \mid 0 < x \le c + 1\} \land c > 0$ is equivalent to the formula $c = c+1 \land c >0$ and is not satisfiable.
+\end{example}
 
-\subparagraph{Example 3} Let  $F \equiv c = \{x \mid 0 < x \le y \land 0 < x \le z\}$. In this case, $c$ can not be directly expressed with an arithmetic expression, as the symbolic value depends on wether $y < z$. However, with a disjonction on $y >z$, $F$ is also equivalent to a pure arithmetic formula $(y > z \implies c = y) \lor (y \le z \implies c = z)$.
+\begin{example} Let  $F \equiv c = \{x \mid 0 < x \le y \land 0 < x \le z\}$. In this case, $c$ can not be directly expressed with an arithmetic expression, as the symbolic value depends on wether $y < z$. However, with a disjonction on $y >z$, $F$ is also equivalent to a pure arithmetic formula $(y > z \implies c = y) \lor (y \le z \implies c = z)$.
+\end{example}
 
 Counting constraints provide a way to specify how many integers satisfy
 a given predicate. Thus, it is a generalization of quantifiers over the
@@ -168,10 +195,10 @@ to make additional assumptions (example 3). We use models constructed by the SMT
 assumptions compatible with formula $F$.
 
 It works as follows: first, the formula without the counting constraints is forwarded to
-the solver we already have. If it is `unsat`, then the formula with the counting constraints is also
-`unsat`. Else, we get a model. Then, the algorithm computes a symbolic arithmetic expression for every counting
+the solver we already have. If it is \texttt{unsat}, then the formula with the counting constraints is also
+\texttt{unsat}. Else, we get a model. Then, the algorithm computes a symbolic arithmetic expression for every counting
 constraints, under the assumptions that hold in the model. Then, both the assumptions and the value
-of the counting constraints are added as new clauses to the solver. If it answers `sat`, then we
+of the counting constraints are added as new clauses to the solver. If it answers \texttt{sat}, then we
 have a model which satisfies the formula with the counting constraints. Else, the solver is
 restored to it previous state, the negation of the assumptions are added to the solver and we
 retry the procedure.
@@ -209,6 +236,19 @@ A pseudo-code description can be seen in algorithm \ref{arith}.
 \label{arith}
 \end{algorithm}
 
+We assume we have an SMT solver that can solve formulas written with the
+theories
+$\mathbf{T}_\mathbb{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots, \mathbf{T}_m$.
+It needs to support some operations (besides the variable definitions):
+\texttt{assert} (adds a formula to the current context),
+\texttt{check-sat} (checks the satisfiability of the conjunction of the
+formulas in the current context), \texttt{push} (creates a new context
+with the current context formula), \texttt{pop} (restores the context to
+the last \texttt{push} call). These operations are supported by most
+modern SMT solvers which can work in an incremental way.
+
+
+\vspace{3mm}
 \begin{example}
 \end{example}
 \subsubsection{Constraints
@@ -256,60 +296,14 @@ $\left(\bigvee\limits_{I \in S} x \in I\right)$.
 Let $\psi_i$ be one of the formula of the counting constraints. We are going to give rules to compute $(S, A)$ such as
 $A \implies \forall x \left(\psi_i(x, \mathbf{y}) \iff x \in S\right)$.
 
-\paragraph{Base cases}
-\paragraph{Negation}
-
-\paragraph{Intersection}
-
-Let $S$ and $S'$ be two arithmetic domains, and $A$, $A'$ the sets of assumptions associated to them. Thus, to do the intersection of the domains $S \sqcap S'$, we are going to
-do the intersection of an interval $I$ of $S$ and an interval $J$
-of $S'$.
-
-So, let $I = [a, b)$ and $J = [c, d)$ be two symbolic intervals. We want a new
-interval $K_{I, J} = [e, f)$ such as
-$A \cup A' \cup A_{S \sqcap S'} \implies \left(x \in I \land x \in J \iff x \in K_{I, J}\right)$.
-$A_{S \sqcap S'}$ is a set of additional assumptions that are added to make it possible to define an
-intersection. For instance, if the two intervals are $[0, x)$ and $[0, y)$, $x < y$ or $y \le x$
-must be added to claim that the intersection is either $[0, x)$ or $[0, y)$.
-
-To decide what are the assumptions needed to compute the intersection, let's assume we have a model
-$\mathcal{M}$ of the formula $F$. For any arithmetic variable $x$, $x_\mathcal{M}$ is
-defined as the value of $x$ in this model, and more generally for any
-term $t$ of theory $T_{\mathbb{Z}}$ (and $+\infty$, $-\infty$),
-$t_{\mathcal{M}}$ is the interpretation of $t$ in this model.
-
-In what follows, we describe a way to compte $K_{I, j}$ as well as
-$A_{S \sqcap S'}$ in regards to the model, so as the assumptions are
-consistents (and the model satifies them).
-
-Let $I = [a, b) \in S$ and $J = [c, d) \in S'$, if
-$max(a_\mathcal{M}, c_\mathcal{M}) < min(b_\mathcal{M}, d_\mathcal{M})$,
-then $K_{I, J} = [max(a, c), min(b, d))$ (where $max(a, c)$ is $a$
-if $a_\mathcal{M} > c_\mathcal{M}$, else $c$), else it is undefined
-(because in the model, the interpretation of the intervals are indeed
-disjoints).
-
-So, this is the intersection of $I$ and $J$ guided by the model.
-Every time there is a decision to take (such as $a < c$), the values
-of the model are looked at. Those decisions must be recorded, as they
-are the assumptions required for this interpretation to be correct. The
-set $A_{S\sqcap S'}$ is composed of those decision. It is clear that
-the model $\mathcal{M}$ satisfies the set $A_{S \sqcap S'}$ (as well
-as $A$ and $A'$ by induction).
-
-%It is also clear that by induction, if $S$ and $S'$ have the
-%property \ref{distincts}, $S\sqcap S'$ also respect this property.
-
-Then, the intersection of the domains can be defined as
-$S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S' \}$. Some intervals $K_{I, J}$ may not be defined
-if they are empty.
+\vspace{4mm}
 
 \begin{lemma}[Distincts]
 
 Let $S$ be an arithmetic domain computed with the rules described above, and $A$ the associated set of assumptions.
 Let $I, J \in S$ such that $I \neq J$.
 
-Then, $A \implies (x \in I \implies x \not\in J)$. Thus,
+Then, $A \implies (x \in I \implies x \not\in J)$, i.e.
 $\{x\ |\ x \in I\}$ and $\{x\ |\ x \in J\}$ are
 disjoints\footnote{Here, $x \in I$ is still defined as $a \le x \land x < b$ if $I = [a, b)$.}.
 
@@ -317,8 +311,99 @@ disjoints\footnote{Here, $x \in I$ is still defined as $a \le x \land x < b$ if 
 
 \end{lemma}
 
-\vspace{4mm}
+\paragraph{Base cases}
 
+If the formula is $y \le x$ where $y$ is an arithmetic variable, then the arithmetic domain is
+$\{[y, +\infty)\}$ with no assumptions.
+
+If the formula is $x < y$, then the arithmetic domain is $\{(-\infty, y)\}$, with no assumptions.
+
+If the formula is a litteral $l$ of a theory $\mathbf{T}_i$, then we look at the value of $l$ in
+$\mathcal{M}$. If it is \texttt{true}, then $S = \{(-\infty, +\infty)\}$ and the assumptions are
+$\{l\}$. If it is \texttt{false}, then $S = \emptyset$ and the assumptions are $\{\lnot l\}$.
+
+Property \ref{distincts} clearly holds.
+
+\paragraph{Intersection}
+
+Let $S$ and $S'$ be two arithmetic domains, and $A$, $A'$ the sets of assumptions associated to
+them. To do the intersection of the domains $S \sqcap S'$, we are going to
+do the intersection of an interval $I$ of $S$ and an interval $J$
+of $S'$.
+
+So, let $I = [a, b)$ and $J = [c, d)$ be two symbolic intervals. We want a new
+interval $K_{I, J} = [e, f)$ such as
+$A \cup A' \cup A_{S \sqcap S'} \implies \left(x \in I \land x \in J \iff x \in K_{I, J}\right)$.
+$A_{S \sqcap S'}$ is a set of additional assumptions that are added to make it possible to define
+the
+intersection. For instance, if the two intervals are $[0, x)$ and $[0, y)$, then $x < y$ or $y \le x$
+must be added to claim that the intersection is either $[0, x)$ or $[0, y)$.
+
+To choose what are the assumptions needed to compute the intersection, we are going to use the model
+$\mathcal{M}$
+of the formula $F$, so as the consistency between the assumptions is guaranteed. For any arithmetic variable $x$, $x_\mathcal{M}$ is
+defined as the value of $x$ in this model, and more generally for any
+term $t$ of theory $T_{\mathbb{Z}}$ (and $+\infty$, $-\infty$),
+$t_{\mathcal{M}}$ is the interpretation of $t$ in this model.
+
+%In what follows, we describe a way to compte $K_{I, j}$ as well as
+%$A_{S \sqcap S'}$ in regards to the model, so as the assumptions are
+%consistents (and the model satifies them).
+
+If
+$max(a_\mathcal{M}, c_\mathcal{M}) < min(b_\mathcal{M}, d_\mathcal{M})$,
+then $K_{I, J} = [max(a, c), min(b, d))$ (where $max(a, c)$ is $a$
+if $a_\mathcal{M} > c_\mathcal{M}$, else $c$), else it is undefined
+(because in the model, the interpretation of the intervals are indeed
+disjoints).
+
+The intersection of $I$ and $J$ is guided by the model.
+Every time there is a decision to take (such as $a < c$), the values
+of the model are looked at. Those decisions are recorded, as they
+are the assumptions required for this interpretation to be correct. The
+set $A_{S\sqcap S'}$ is composed of those decision. By induction, it is clear that if the same model
+$\mathcal{M}$ is used for every intersection, then $\mathcal{M}$ satisfies $A \cup A' \cup A_{S \sqcap S'}$.
+
+%It is also clear that by induction, if $S$ and $S'$ have the
+%property \ref{distincts}, $S\sqcap S'$ also respect this property.
+
+Then, the intersection of the domains is defined as
+$S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S' \}$. Some intervals $K_{I, J}$ may not be defined
+if they are empty. The associated assumptions set is $A \cup A' \cup A_{S \sqcap S'}$.
+
+Property \ref{distincts} clearly holds if it holds for both $S$ and $S'$.
+
+\vspace{2mm}
+\begin{example}
+
+Let $S = \{ I_1, I_2\} =  \{[0, 10), [12, z)\}$, $A = \{ z > 12 \}$, $S' = \{J\}= \{[15, y)\}$, $A =
+\{ y > 15 \}$.
+
+The model $\mathcal{M}$ is $\{ z \mapsto 16, y \mapsto 20 \}$.
+
+The algorithm intersects $I_1$ with $J$,  which is $\emptyset$ as $12 > 10$. Then it intersects
+$I_2$ with $J$. As $max(15, 12) = 15 < min(z_\mathcal{M}, y_\mathcal{M}) = 16 = z_\mathcal{M}$, the
+intersection is $[15, z)$. The assumptions needed to do this intersection are $15 > 12, y > z, z >
+15$.
+
+The arithmetic domain is then $S\sqcap S' = \{[15, z)\}$ with the associated assumptions $\{z > 12,
+y > 15, 15 > 12, y > z, z > 15\}$.
+
+\end{example}
+
+\paragraph{Negation}
+We want to compute an arithmetic domain for a formula $\lnot \phi$. We assume we have an arithmetic
+domain $S$ (with assumptions $A$) computed for $\phi$. Then property \ref{distincts} holds. There
+are several cases, but here I only explain how the algorithm works if there is no $\infty$ in $S$.
+
+By looking at the values in the model $\mathcal{M}$ of the bounds of the intervals in $S$, we can
+choose inequalities that make $S = \{[a_1, b_1), \ldots, [a_k, b_k)\}$ ordered, i.e. $\forall i$, $A
+\implies b_i < a_{i+1}$.
+
+Then, the arithmetic domain for $\lnot \phi$ is $S' = \{(-\infty, a_1), [b_1, a_1), \ldots, [b_k,
++\infty)\}$, and the assumptions are those in $A$ and the new ones chosen to order $S$.
+
+\vspace{4mm}
 %\begin{definition}[Domains intersection, $S \sqcap S'$ and $A_{S \sqcap S'}$]
 
 %If $S$ and $S'$ are two arithmetic domains associated to the
@@ -356,6 +441,28 @@ $A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \in S\right)$.
 \label{}
 
 \end{lemma}
+
+\begin{proof}
+\end{proof}
+
+
+\vspace{4mm}
+
+
+A corallary of property \ref{distincts} is the fact that the cardinality of the reunion of the elements
+of $S$ is the sum of the cardinality of its elements:
+\begin{equation}
+A \implies \sharp\{ x \in S \} = \sum\limits_{I \in S} \sharp\{x \in I\}
+\end{equation}
+
+Moreover, as the formula inside every counting constraints is of the form $t_1 \le x < t_2 \land
+\phi$ (Figure \ref{formula}), it is clear that every interval in S is finite. Then, if $S$ and $A$
+were computed for a formula $\phi$:
+\begin{equation}
+A \implies \sharp\{x \mid \phi(x, \mathbf{y})\} = \sum\limits_{[a, b)\, \in\, S} b - a
+\end{equation}
+
+
 \subsubsection{Termination and Correctness}
 
 \begin{lemma}[Termination]
@@ -375,6 +482,14 @@ set of assumptions.
 At every iteration, there is a $\text{\textsc{assert}}(\lnot A)$, hence the fact that there is
 a finite number of iterations.
 \end{proof}
+
+\begin{proof}
+\end{proof}
+
+\begin{lemma}[Correctness]
+
+Algorithm \ref{arith} is correct.
+\end{lemma}
 
 \begin{proof}
 \end{proof}
@@ -484,6 +599,8 @@ a finite number of iterations.
 %
 \subsection{Implementation}
 
+\ifthenelse{0=0}{}
+{
 \section{Solving Counting Constraints with
 Arrays}\label{solving-counting-constraints-with-arrays}
 
@@ -821,7 +938,9 @@ solver may be worthwhile.
 %is decidable and why, they heavily rely on quantifier elimination and
 %thus may not be very practical nor easily integrated in modern SMT
 %solvers.
+}{}
 
+\newpage
 \bibliographystyle{plain}
 \bibliography{report}
 
