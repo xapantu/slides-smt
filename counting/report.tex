@@ -250,153 +250,30 @@ the lower bound of an interval is lower than the upper bound.
 
 \end{definition}
 
-If S is an arithmetic domain, we abusively write $x \in S$ for
-$\left(\bigvee\limits_{I \in S} x \in I\right)$. We are going to prove
-that $(S, A) \vdash \phi(x, \mathbf{y})$ implies
-$A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \in S\right)$.
+Let S be an arithmetic domain. We write $x \in S$ for
+$\left(\bigvee\limits_{I \in S} x \in I\right)$.
 
-\begin{figure}[h]
-\begin{prooftree}
-\AxiomC{$(S, A) \vdash \phi(x, \mathbf{y})$}
-\AxiomC{$(S', A') \vdash \psi(x, \mathbf{y})$}
-\BinaryInfC{$(S \sqcap S', A \cup A' \cup A_{S\sqcap S'}) \vdash \phi \land \psi (x, \mathbf{y})$}
-\end{prooftree}
-\caption{And}
-\label{and}
-\end{figure}
+Let $\psi_i$ be one of the formula of the counting constraints. We are going to give rules to compute $(S, A)$ such as
+$A \implies \forall x \left(\psi_i(x, \mathbf{y}) \iff x \in S\right)$.
 
-\begin{figure}[h]
-\begin{prooftree}
-\AxiomC{$(S, A) \vdash \phi(x, \mathbf{y})$}
-\UnaryInfC{$(S^c, A) \vdash \lnot \phi(x, \mathbf{y})$}
-\end{prooftree}
-\caption{Not}
-\label{not}
-\end{figure}
+\paragraph{Base cases}
+\paragraph{Negation}
 
-\begin{figure}[h]
-\begin{prooftree}
-\AxiomC{}
-\UnaryInfC{$([y; +\infty), \emptyset) \vdash y \leq x$}
-\end{prooftree}
+\paragraph{Intersection}
 
-\begin{prooftree}
-\AxiomC{}
-\UnaryInfC{$((-\infty; y), \emptyset) \vdash x < y$}
-\end{prooftree}
-
-\caption{Base Cases}
-\label{basecases}
-
-\end{figure}
-
-Figures \ref{and}, \ref{not} and \ref{basecases} are the inference rules
-used to compute an arithmetic domain and an associated set of
-assumptions for a given formula.
-
-\vspace{3mm}
-
-\begin{definition}[Domains intersection, $S \sqcap S'$ and $A_{S \sqcap S'}$]
-
-If $S$ and $S'$ are two arithmetic domains associated to the
-assumptions $A$ and $A'$, then the intersection $S\sqcap S'$ is
-defined as an arithmetic domain such as\newline
-$A \cup A' \cup A_{S\sqcap S'} \implies \left(\left(x \in S \land x \in S'\right)\iff x \in S \sqcap S'\right)$\newline (where
-$x \in S$ means $\left(\bigwedge\limits_{I\in S} x \in I\right)$).
-
-\label{domains}
-
-\end{definition}
-
-\vspace{3mm}
-
-\begin{definition}[Complementary Domains, $S^c$]
-
-If $S$ is an arithmetic domain, then $S^c$ is defined as a set of
-intervals such as
-$\forall x.\ \left( \exists I \in S.\ x \in I\right) \iff \left( \not\exists I \in S^c.\ x \in I\right)$.
-
-\label{complementary}
-
-\end{definition}
-
-\vspace{3mm}
-
-\begin{lemma}[]
-
-If we can write a tree to derive $(S, A) \vdash \phi(x, \mathbf{y})$,
-then we have
-$A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \in S\right)$.
-Furthermore, under the assumptions $A$, the intervals of S are
-disjoints: \newline
-if $[a, b) \in S$ and $[c, d) \in S$ then
-$A \implies \forall x\ \lnot \left( a \leq x \land x < b\right) \lor \lnot \left( c \leq x \land x < d \right)$.
-
-\label{}
-
-\end{lemma}
-
-\begin{proof}
-\end{proof}
-
-\subsubsection{Interpret a constraint with a
-model}\label{interpret-a-constraint-with-a-model}
-
-We are now interested in how we can write an algorithm which provides an
-arithmetic domain and a set of assumptions from a formula, following the
-inference rules of the former section. Hence, the only two missing
-operations are building the domains $S^c$ and $S \sqcap S'$. This
-algorithm must be correct, but we also want it to ensure several
-properties, so as the resulting domains can then be used to compute the
-cardinality at no further cost. These properties are on both the domain
-and the assumptions associated to it.
-
-This algorithm uses a model (i.e.~an assignment of the free variables of
-the formula $F$ of equation \ref{maingoal} whose it is a model of),
-and computes the arithmetic domain in respect to this model.
-
-\vspace{3mm}
-
-\begin{property}[Distincts]
-
-If $S$ is an arithmetic domain, and $A$ a set of assumptions then,
-if $I, J \in S$ and $I \neq J$,
-$A \implies (x \in I \implies x \not\in J)$. Thus,
-$\{x\ |\ x \in I\}$ and $\{x\ |\ x \in J\}$ are
-disjoints\footnote{Here, $x \in I$ is still defined as $a \le x \land x < b$ if $I = [a, b)$.}.
-
-\label{distincts}
-
-\end{property}
-
-\vspace{3mm}
-
-\begin{property}[Consistency]
-
-If $A$ is a set of assumptions, then it is consistent if the
-conjunction of it elements is satisfiable.
-
-\label{consistency}
-
-\end{property}
-
-If the property \ref{distincts} holds and every interval of $S$ is
-finite, then:
-
-$A \implies \sharp\{ x \in S \} = \sum\limits_{[a, b) \in S} b - a$.
-
-\paragraph{Intersection}\label{intersection}
-
-$S$ and $S'$ are both arithmetic domain, i.e.~sets of symbolic
-intervals. Thus, to do the intersection of the domains, we are going to
+Let $S$ and $S'$ be two arithmetic domains, and $A$, $A'$ the sets of assumptions associated to them. Thus, to do the intersection of the domains $S \sqcap S'$, we are going to
 do the intersection of an interval $I$ of $S$ and an interval $J$
-of $S'$. So, if $I = [a, b)$ and $J = [c, d)$, we want a new
+of $S'$.
+
+So, let $I = [a, b)$ and $J = [c, d)$ be two symbolic intervals. We want a new
 interval $K_{I, J} = [e, f)$ such as
 $A \cup A' \cup A_{S \sqcap S'} \implies \left(x \in I \land x \in J \iff x \in K_{I, J}\right)$.
-Then, the intersection of the domains can be defined as
-$S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S'\}$.
+$A_{S \sqcap S'}$ is a set of additional assumptions that are added to make it possible to define an
+intersection. For instance, if the two intervals are $[0, x)$ and $[0, y)$, $x < y$ or $y \le x$
+must be added to claim that the intersection is either $[0, x)$ or $[0, y)$.
 
-Now, let's assume we have a model $\mathcal{M}$. $x_\mathcal{M}$ is
+To decide what are the assumptions needed to compute the intersection, let's assume we have a model
+$\mathcal{M}$ of the formula $F$. For any arithmetic variable $x$, $x_\mathcal{M}$ is
 defined as the value of $x$ in this model, and more generally for any
 term $t$ of theory $T_{\mathbb{Z}}$ (and $+\infty$, $-\infty$),
 $t_{\mathcal{M}}$ is the interpretation of $t$ in this model.
@@ -418,51 +295,68 @@ of the model are looked at. Those decisions must be recorded, as they
 are the assumptions required for this interpretation to be correct. The
 set $A_{S\sqcap S'}$ is composed of those decision. It is clear that
 the model $\mathcal{M}$ satisfies the set $A_{S \sqcap S'}$ (as well
-as $A$ and $A'$ by induction), thus
-$A_{S \sqcap S'} \cup A \cup A'$ is consistent, hence property
-\ref{consistency}.
+as $A$ and $A'$ by induction).
 
-It is also clear that by induction, if $S$ and $S'$ have the
-property \ref{distincts}, $S\sqcap S'$ also respect this property.
+%It is also clear that by induction, if $S$ and $S'$ have the
+%property \ref{distincts}, $S\sqcap S'$ also respect this property.
 
-\paragraph{Negation}\label{negation}
+Then, the intersection of the domains can be defined as
+$S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S' \}$. Some intervals $K_{I, J}$ may not be defined
+if they are empty.
 
-TODO
+\begin{lemma}[Distincts]
 
-\subsubsection{Algorithm to solve arithmetic counting
-contraints}\label{algorithm-to-solve-arithmetic-counting-contraints}
+Let $S$ be an arithmetic domain computed with the rules described above, and $A$ the associated set of assumptions.
+Let $I, J \in S$ such that $I \neq J$.
 
-We describe an algorithm to solve a formula:
+Then, $A \implies (x \in I \implies x \not\in J)$. Thus,
+$\{x\ |\ x \in I\}$ and $\{x\ |\ x \in J\}$ are
+disjoints\footnote{Here, $x \in I$ is still defined as $a \le x \land x < b$ if $I = [a, b)$.}.
 
-\begin{equation}
-F(\mathbf{y}, c_1, \ldots, c_n) \land
-\bigwedge_{i = 1} ^n c_i = \sharp\{x\ |\ \phi_i(\mathbf{y}, c_1, \ldots, c_n, x)\}
-\end{equation}
+\label{distincts}
 
-where $F$ does not contain counting constraints.
+\end{lemma}
 
-We assume we have an SMT solver that can solve formulas written with the
-theories
-$\mathbf{T}_\mathbb{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots, \mathbf{T}_m$.
-It needs to support some operations (besides the variable definitions):
-\texttt{assert} (adds a formula to the current context),
-\texttt{check-sat} (checks the satisfiability of the conjunction of the
-formulas in the current context), \texttt{push} (creates a new context
-with the current context formula), \texttt{pop} (restores the context to
-the last \texttt{push} call). These operations are supported by most
-modern SMT solvers which can work in an incremental way.
+\vspace{4mm}
 
-The algorithm \ref{arith} works as follows: it asks for a model
-$\mathcal{M}$ of the formula $F$, then interpret every counting
-constraints to a symbolic expression under some assumptions. The
-equality between those expressions and the $c_i$, as well as the
-assumptions are then enforced with an \texttt{assert}. Then, if the
-solver says it is satisfiable, the values of the $c_i$ in the new
-model respect the counting constraints equations. If it is not, then it
-means that the assumptions $A$ and the counting constraints equations
-are not consistent, thus $\lnot A$ can be asserted, and we can re-try.
+%\begin{definition}[Domains intersection, $S \sqcap S'$ and $A_{S \sqcap S'}$]
 
-\vspace{3mm}
+%If $S$ and $S'$ are two arithmetic domains associated to the
+%assumptions $A$ and $A'$, then the intersection $S\sqcap S'$ is
+%defined as an arithmetic domain such as\newline
+%$A \cup A' \cup A_{S\sqcap S'} \implies \left(\left(x \in S \land x \in S'\right)\iff x \in S \sqcap S'\right)$\newline (where
+%$x \in S$ means $\left(\bigwedge\limits_{I\in S} x \in I\right)$).
+
+%\label{domains}
+
+%\end{definition}
+
+%\vspace{3mm}
+
+%\begin{definition}[Complementary Domains, $S^c$]
+
+%If $S$ is an arithmetic domain, then $S^c$ is defined as a set of
+%intervals such as
+%$\forall x.\ \left( \exists I \in S.\ x \in I\right) \iff \left( \not\exists I \in S^c.\ x \in I\right)$.
+
+%\label{complementary}
+
+%\end{definition}
+
+%\vspace{3mm}
+
+
+\begin{lemma}[Correctness]
+
+Let $S$ be an arithmetic domain computed with the rules described above, and $A$ the associated set of assumptions.
+
+Then,
+$A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \in S\right)$.
+
+\label{}
+
+\end{lemma}
+\subsubsection{Termination and Correctness}
 
 \begin{lemma}[Termination]
 
@@ -482,20 +376,112 @@ At every iteration, there is a $\text{\textsc{assert}}(\lnot A)$, hence the fact
 a finite number of iterations.
 \end{proof}
 
-\vspace{3mm}
+\begin{proof}
+\end{proof}
 
-\begin{lemma}[Correctness]
+%\begin{lemma}[Consistency]
 
-\label{correctness}
+%Let $A$ is a set of assumptions computed with the rules described above. Then it is consistent, i.e. the
+%conjunction of it elements is satisfiable.
 
-\end{lemma}
+%\label{consistency}
 
-\begin{proof}TODO\end{proof}
+%\end{lemma}
 
-\paragraph{Example}\label{example}
+%\vspace{4mm}
 
-TODO
 
+%\subsubsection{Interpret a constraint with a
+%model}\label{interpret-a-constraint-with-a-model}
+
+%We are now interested in how we can write an algorithm which provides an
+%arithmetic domain and a set of assumptions from a formula, following the
+%inference rules of the former section. Hence, the only two missing
+%operations are building the domains $S^c$ and $S \sqcap S'$. This
+%algorithm must be correct, but we also want it to ensure several
+%properties, so as the resulting domains can then be used to compute the
+%cardinality at no further cost. These properties are on both the domain
+%and the assumptions associated to it.
+
+%This algorithm uses a model (i.e.~an assignment of the free variables of
+%the formula $F$ of equation \ref{maingoal} whose it is a model of),
+%and computes the arithmetic domain in respect to this model.
+%
+%\vspace{3mm}
+
+%If the property \ref{distincts} holds and every interval of $S$ is
+%finite, then:
+
+%$A \implies \sharp\{ x \in S \} = \sum\limits_{[a, b) \in S} b - a$.
+
+
+%\subsubsection{Algorithm to solve arithmetic counting
+%contraints}\label{algorithm-to-solve-arithmetic-counting-contraints}
+
+%We describe an algorithm to solve a formula:
+
+%\begin{equation}
+%F(\mathbf{y}, c_1, \ldots, c_n) \land
+%\bigwedge_{i = 1} ^n c_i = \sharp\{x\ |\ \phi_i(\mathbf{y}, c_1, \ldots, c_n, x)\}
+%\end{equation}
+
+%where $F$ does not contain counting constraints.
+
+%We assume we have an SMT solver that can solve formulas written with the
+%theories
+%$\mathbf{T}_\mathbb{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots, \mathbf{T}_m$.
+%It needs to support some operations (besides the variable definitions):
+%\texttt{assert} (adds a formula to the current context),
+%\texttt{check-sat} (checks the satisfiability of the conjunction of the
+%formulas in the current context), \texttt{push} (creates a new context
+%with the current context formula), \texttt{pop} (restores the context to
+%the last \texttt{push} call). These operations are supported by most
+%modern SMT solvers which can work in an incremental way.
+%
+%The algorithm \ref{arith} works as follows: it asks for a model
+%$\mathcal{M}$ of the formula $F$, then interpret every counting
+%constraints to a symbolic expression under some assumptions. The
+%equality between those expressions and the $c_i$, as well as the
+%assumptions are then enforced with an \texttt{assert}. Then, if the
+%solver says it is satisfiable, the values of the $c_i$ in the new
+%model respect the counting constraints equations. If it is not, then it
+%means that the assumptions $A$ and the counting constraints equations
+%are not consistent, thus $\lnot A$ can be asserted, and we can re-try.
+%
+%\vspace{3mm}
+
+%\begin{lemma}[Termination]
+%
+%Algorithm \ref{arith} terminates.
+%
+%\label{termination}
+%
+%\end{lemma}
+%
+%\begin{proof}
+%In the former section, we explained how the assumptions set was computed. An
+%assumption can be an equality, a disequality or an inequality between two terms
+%that appear in the formulas $\phi_i$. Thus, there is a finite number of possible
+%set of assumptions.
+%
+%At every iteration, there is a $\text{\textsc{assert}}(\lnot A)$, hence the fact that there is
+%a finite number of iterations.
+%\end{proof}
+%
+%\vspace{3mm}
+%
+%\begin{lemma}[Correctness]
+%
+%\label{correctness}
+%
+%\end{lemma}
+%
+%\begin{proof}TODO\end{proof}
+%
+%\paragraph{Example}\label{example}
+%
+%TODO
+%
 \subsection{Implementation}
 
 \section{Solving Counting Constraints with
@@ -512,7 +498,7 @@ array theory fragment, as stated in
 fragment.
 
 An array has a size, which is an arithmetic variable of the theory
-$\mathbf{T}_\mathcal{Z}$. This is similar to
+$\mathbf{T}_\mathbb{Z}$. This is similar to
 \cite{AlbertiGP16} (with the subtle difference that
 different arrays can have different size) but unlike
 \cite{ConchonGKMZ12}, whose fragment does not
