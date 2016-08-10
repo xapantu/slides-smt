@@ -1,0 +1,1007 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage[utf8]{inputenc}
+\usepackage{fixltx2e}
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath}
+}{}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Solving Counting Constraints on First Order Formulas in SMT},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{5}
+\usepackage{tikz}
+\usepackage{bussproofs}
+\usepackage{syntax}
+\usepackage{amsthm}
+\usepackage{color}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\setcounter{secnumdepth}{3}
+
+\title{Solving Counting Constraints on First Order Formulas in SMT}
+\date{August 28, 2016}
+
+\begin{document}
+\maketitle
+
+{
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+
+\newtheorem{definition}{Definition} \newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem} \newtheorem{property}{Property}
+\newtheorem{example}{Example}
+
+\newpage
+
+\section*{Introduction}\label{introduction}
+\addcontentsline{toc}{section}{Introduction}
+
+
+Model checking is used to prove properties of a system. A system is modeled by a set
+of initial states and transitions. State transitions, initial states and properties are expressed in
+first order logic. We are interested in infinite state systems. As it is not possible to enumerate
+every state and verify they satisfy the properties, the goal is to find invariants of the system,
+which are strengthening of the properties. Several techniques can be used to solve this problem,
+such as bounded model checking, IC3 \cite{pdr}, or k-induction. For infinite state systems, model
+checking is done symbolically and uses satisfiability modulo theories (SMT) solvers.
+
+Extending this to support analysis of parametric systems is of major interest to prove correctness
+of a large number of protocols, such as fault tolerant protocols\cite{AlbertiGP16} or cache coherence
+protocols\cite{ConchonGKMZ12}. A key issue is handling efficiently cardinality constraints in
+SMT.
+
+During my internship, I worked on a decision procedure for counting constraints in arithmetic
+(section 1), and then on an extension for counting constraints with arrays. Both decision
+procedures were implemented as an overlay to an existing SMT solver.
+
+I did my internship at SRI, California, under the supervision of Bruno Dutertre and Dejan
+Jovanović.
+
+
+%TODO
+
+%\section{Model Checking of parameterized and fault tolerant systems}
+
+%TODO
+
+%\subsection{Counting Constraints}
+
+%Model checking usually relies on checking that the negation of a
+%property is unsatisfiable. Properties and transitions can be expressed
+%with first order formulas, with or without quantifiers. This problem is
+%known to be undecidable \cite{apt1986limits}, that
+%is why it is crucial to understand what is the class of formulas used to
+%specify them, and to restrict them if possible.
+
+%Counting constraints provide a way to specify how many integers satisfy
+%a given predicate. Thus, it is a generalization of quantifiers over the
+%integers. For instance, if $a$ is an array of booleans of size $n$,
+%the counting constraint $\sharp\{ x \ |\ a[x]\} > n/2$ specify that
+%more than half the array is set to \texttt{true}. An existential
+%quantifier can be transformed into a constraint involving a cardinality
+%greater than 1, and a universal quantifier into a counting constraint
+%composed of a cardinality equal to 0 (in this case, the predicate will
+%be the negation of the formula).
+%
+%For the class of problems we want to study, they are very adapted to
+%express properties of the systems, such as the maximum fraction of
+%faulty components. However, dealing with several nested quantifiers is
+%hard, and a lot of problems can be modeled with a single level of
+%quantification (i.e.~there is no nested counting constraints terms
+%inside other counting constraints). Thus, this problem can be restricted
+%to this case and still be interesting, and provides a simplified version
+%of quantifiers, while avoiding the requirement to support a more
+%complete class of formulas. SMT formulas with a lot of quantifiers are
+%indeed known to be hard to solve \cite{ge2009complete}.
+
+\section{Counting Constraints for Arithmetic}
+
+We consider a set of distinct theories $\mathbf{T}_\mathbb{Z}$,
+$\mathbf{T}_{eq}$, $\mathbf{T}_2$, \ldots{}, $\mathbf{T}_n$, where
+$\mathbf{T}_\mathbb{Z}$ is the theory of $\mathbb{Z}$, and
+$\mathbf{T}_{eq}$ is the theory of equality between the other theory.
+Atoms and variables of these theories are defined as usual. In the
+following, a first order formula without quantifiers is defined with the
+grammar \ref{formula}. The terms of the form
+$c = \sharp\{ x\ |\ \psi(x) \}$ are called counting constraints. 
+$\sharp\{ x\ |\ \psi(x)\}$ denotes the cardinality of a subset $S$
+of $\mathbb{Z}$ such as $x \in S \iff \psi(x)$.
+
+\begin{figure}[h]
+\begin{grammar}
+    
+<formulas> $\phi$ ::= $\phi$ $\land$ $\phi$
+\alt $\phi$ $\lor$ $\phi$
+\alt $\lnot$ $\phi$
+\alt <atoms> of $\mathbf{T}_i$
+\alt $c = \sharp\{ x \mid y\ \text{\textless}\ x \le z \land \phi(x) \}$ where $c, y, z$ are variables of $\mathbf{T}_\mathbb{Z}$
+
+\end{grammar}
+
+\caption{Formula syntax}
+\label{formula}
+\end{figure}
+
+\begin{example}
+The formula $c = \{x \mid 0 < x \le 10 \land 5 < x \le 10\}$ is equivalent to the formula $c = 5$.
+\end{example}
+
+\begin{example} The formula $c = \{x \mid 0 < x \le c + 1\} \land c > 0$ is equivalent to the formula $c = c+1 \land c >0$ and is not satisfiable.
+\end{example}
+
+\begin{example} Let  $F \equiv c = \{x \mid 0 < x \le y \land 0 < x \le z\}$. In this case, $c$ can
+not be directly expressed with an arithmetic expression, as the symbolic value depends on whether $y < z$. However, with a disjunction on $y >z$, $F$ is also equivalent to a pure arithmetic formula $(y > z \implies c = y) \lor (y \le z \implies c = z)$.
+\end{example}
+
+Counting constraints provide a way to specify how many integers satisfy
+a given predicate. Thus, it is a generalization of quantifiers over the
+integers. An existential
+quantifier can be transformed into a constraint involving a cardinality
+greater than 1, and a universal quantifier into a counting constraint
+composed of a cardinality equal to 0 (in this case, the predicate will
+be the negation of the formula).
+
+However, dealing with quantifiers in SMT formula is known to be a hard problem. Some theories
+support quantifiers elimination, such as arithmetic \cite{cooper}, but these algorithms may not be very
+efficient (even for arithmetic it can be better to instantiate the quantifiers \cite{dutertre2015solving}) and quantifiers elimination is not possible in every theory \cite{bradley2006s}.
+
+That's why we look at a restricted subset of formulas built on the syntax of Figure \ref{formula}:
+there is no nested counting constraints. Furthermore, to keep the algorithm simple, if the
+quantified variable is $x$, every atom of the counting constraint where $x$ appears must be of the form $x < t$ or $t \le x$,
+where $t$ is an arithmetic term where $x$ does not appear. Without loss of generality, we only
+consider the case where $t$  is an arithmetic variable (a new variable equal to an arbitrary term
+can always be added to the formula). Atoms such as $2x < y$ are not handled by our algorithm, 
+they could be added but would make it hard to comprehend.
+
+It can be shown that every formula in this class is equivalent to a formula of the form:
+\begin{equation}
+F(c_1, \ldots, c_n, \mathbf{y}) \land \bigwedge\limits_{i=1}^n c_i = \sharp\{ x \ |\ \psi_i(x, c_1, \ldots, c_n,
+\mathbf{y})\}
+\label{maingoal}
+\end{equation}
+where no counting constraints appear in $F$.
+
+We are going to explain a way to decide this formula, i.e. saying whether
+they are satisfiable, and if yes give a model that satisfies this
+formula.
+
+\subsection{Decision Procedure}
+\subsubsection{Overview}
+
+We assume that we already have a solver to solve formulas without
+counting constraints (which can give a model if the formula is
+\texttt{sat}).
+
+The algorithm translates every counting constraints in arithmetic expressions. To do that, it needs
+to make additional assumptions (example 3). We use models constructed by the SMT solver to enumerate every possible set of
+assumptions compatible with formula $F$.
+
+It works as follows: first, the formula without the counting constraints is forwarded to
+the solver we already have. If it is \texttt{unsat}, then the formula with the counting constraints is also
+\texttt{unsat}. Else, we get a model. Then, the algorithm computes a symbolic arithmetic expression for every counting
+constraints, under the assumptions that hold in the model. Then, both the assumptions and the value
+of the counting constraints are added as new clauses to the solver. If it answers \texttt{sat}, then we
+have a model which satisfies the formula with the counting constraints. Else, the solver is
+restored to it previous state, the negation of the assumptions are added to the solver and we
+retry the procedure.
+
+A pseudo-code description can be seen in algorithm \ref{arith}.
+
+\begin{algorithm}[h]
+\caption{Satisfiability of arithmetic formula with counting constraints}\label{arith}
+\begin{algorithmic}[1]
+%\Procedure{MyProcedure}{}
+\State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
+\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
+    \State \Call{push}{\ }
+    \State $A \gets \emptyset$
+    \ForAll{ $i$ in $[1..n]$}
+        \State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
+        $\mathcal{M}$}
+        \State $A \gets A \cup A_i$
+        \If{$S_i$ is infinite}
+            \State \Call{assert}{$\lnot A$}
+            \State \Call{continue}{}
+        \EndIf
+    \EndFor
+    \State \Call{assert}{$A$}
+    \State \textsc{assert}$\left(\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} b - a\right)$
+    \If {\Call{check-sat}{\ } }
+        \State \Call{pop}{\ }
+        \State \Return{sat}
+    \EndIf
+    \State \Call{pop}{\ }
+    \State \Call{assert}{$\lnot A$}
+\EndWhile
+\State \Return{unsat}
+\end{algorithmic}
+\label{arith}
+\end{algorithm}
+
+We assume we have an SMT solver that can solve formulas written with the
+theories
+$\mathbf{T}_\mathbb{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots, \mathbf{T}_m$.
+It needs to support some operations (besides the variable definitions):
+\texttt{assert} (adds a formula to the current context),
+\texttt{check-sat} (checks the satisfiability of the conjunction of the
+formulas in the current context), \texttt{push} (creates a new context
+with the current context formula), \texttt{pop} (restores the context to
+the last \texttt{push} call). These operations are supported by most
+modern SMT solvers which can work in an incremental way.
+
+
+\vspace{3mm}
+\begin{example}
+\ \newline Let $F \equiv N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \land c = \sharp\{ x \mid 0 \le x < N \land (x < z \lor x < u) \}$.
+For this formula, the algorithm works as follows:
+\begin{itemize}
+\item \textsc{assert}$\left(N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \right)$.
+\item \textsc{push}$()$
+\begin{itemize}
+	\item First, get a model: $\mathcal{M} = \{ z \mapsto 10, N \mapsto 11, u \mapsto 0, c \mapsto 11\}$.
+	\item Compute the domain of $\{ x \mid 0 \le x < N \land (x < z \lor x < u) \}$.
+	\item The assumptions are $N > z, u < z, N > 0, N > u$ and the domain is $S = \{ [0, z) \}$.
+	\item \textsc{assert}$\left(N > z \land u < z \land N > 0 \land N > u\right)$
+	\item \textsc{assert}$\left(c = z)\right)$
+	\item Then it is \texttt{unsat}, as we can't have both $c = z$ and $c> z$
+\end{itemize}
+\item \textsc{pop}()
+\item The assumptions were not correct, we want to try something else.
+\item \textsc{assert}$\left(\lnot \left(N > z \land u < z \land N > 0 \land N > u\right)\right)$
+\item \textsc{push}$()$
+\begin{itemize}
+\item Get a new model: $\mathcal{M} = \{ z \mapsto 10, N \mapsto 30, u \mapsto 20, c \mapsto 11\}$.
+\item Compute the domain and assumptions, it gets $A = \{ N \ge u, u > z, N > 0, u > 0\}$ and $S = [0, u)$.
+\item \textsc{assert}$\left(N \ge u \land u > z \land N > 0 \land u > 0\right)$
+\item \textsc{assert}$\left(c = u\right)$.
+\item Now it is \texttt{sat}, and the model $\mathcal{M} = \{ z \mapsto 10, N \mapsto 30, u \mapsto 20, c \mapsto 20\}$ satisfies the whole formula.
+\end{itemize}
+\end{itemize}
+
+\end{example}
+\subsubsection{Constraints
+Interpretation}\label{constraints-interpretation}
+
+In this section, we explain how a set $\sharp\{x\mid\phi(x)\}$ can be symbolically computed under
+some assumptions.
+
+\begin{definition}[Assumptions]
+
+We call assumptions a set $A$ whose elements are literals of the theories
+$\mathbf{T}_i$. In the context of a first order formula, writing $A$
+means the conjunctions of the atoms of $A$.
+
+\label{assumptions}
+
+\end{definition}
+
+\vspace{3mm}
+
+\begin{definition}[Symbolic Interval]
+
+A symbolic interval is a couple of values that are either arithmetic
+variables, constants or $\infty$. If $I = [a, b)$, $x \in I$ is
+defined as $x < b \land a \le x$. \newline~\newline
+It is finite if none of the bounds are infinite.
+
+\label{symbolic}
+
+\end{definition}
+
+\vspace{3mm}
+
+\begin{definition}[Arithmetic Domain]
+
+An arithmetic domain is a finite set of symbolic intervals (definition
+\ref{symbolic}). It is  associated to some assumptions
+(definition \ref{assumptions}) which make them disjoint and ensure that
+the lower bound of an interval is lower than the upper bound.
+
+\label{arithmetic}
+
+\end{definition}
+
+Let S be an arithmetic domain. We write $x \in S$ for
+$\left(\bigvee\limits_{I \in S} x \in I\right)$.
+
+Let $\psi_i$ be one of the formula of the counting constraints. We are going to give rules to compute $(S, A)$ such as
+$A \implies \forall x \left(\psi_i(x, \mathbf{y}) \iff x \in S\right)$. The goal is to express the
+cardinality $\sharp\{x \mid \psi_i(x)\}$ with an arithmetic formula (see below), which is easy if $S$ is only
+comprised of distinct intervals. That is why we want the set $S$
+to satisfy the following property:
+
+\vspace{4mm}
+
+\begin{property}[Distincts]
+
+Let $S$ be an arithmetic domain computed with the rules described above, and $A$ the associated set of assumptions.
+Let $I, J \in S$ such that $I \neq J$.
+
+Then, $A \implies (x \in I \implies x \not\in J)$, i.e.
+$\{x\ |\ x \in I\}$ and $\{x\ |\ x \in J\}$ are
+disjoints\footnote{Here, $x \in I$ is still defined as $a \le x \land x < b$ if $I = [a, b)$.}.
+
+\label{distincts}
+
+\end{property}
+
+
+The arithmetic domain and the associated set of assumptions is computed inductively on the formula
+$\psi_i$.
+
+\paragraph{Base cases}
+
+If the formula is $y \le x$ where $y$ is an arithmetic variable, then the arithmetic domain is
+$\{[y, +\infty)\}$ with no assumptions.
+
+If the formula is $x < y$, then the arithmetic domain is $\{(-\infty, y)\}$, with no assumptions.
+
+If the formula is a literal $l$ of a theory $\mathbf{T}_i$, then we look at the value of $l$ in
+$\mathcal{M}$. If it is \texttt{true}, then $S = \{(-\infty, +\infty)\}$ and the assumptions are
+$\{l\}$. If it is \texttt{false}, then $S = \emptyset$ and the assumptions are $\{\lnot l\}$.
+
+Property \ref{distincts} clearly holds.
+
+\paragraph{Conjunction}
+
+Let $S$ and $S'$ be two arithmetic domains computed for $\phi$ and $\psi$, and $A$, $A'$ the sets of assumptions associated to
+them. The domain of $\phi\land\psi$ is the intersection of $S$ and $S'$. To construct this intersection $S \sqcap S'$, we are going to
+do the intersection of an interval $I$ of $S$ and an interval $J$
+of $S'$.
+
+So, let $I = [a, b)$ and $J = [c, d)$ be two symbolic intervals. We want a new
+interval $K_{I, J} = [e, f)$ such as
+$A \cup A' \cup A_{S \sqcap S'} \implies \left(x \in I \land x \in J \iff x \in K_{I, J}\right)$.
+$A_{S \sqcap S'}$ is a set of additional assumptions that are added to make it possible to define
+the
+intersection. For instance, if the two intervals are $[0, x)$ and $[0, y)$, then $x < y$ or $y \le x$
+must be added to claim that the intersection is either $[0, x)$ or $[0, y)$.
+
+To choose what are the assumptions needed to compute the intersection, we are going to use the model
+$\mathcal{M}$
+of the formula $F$, so as the consistency between the assumptions is guaranteed. For any arithmetic variable $x$, $x_\mathcal{M}$ is
+defined as the value of $x$ in this model, and more generally for any
+term $t$ of theory $T_{\mathbb{Z}}$ (and $+\infty$, $-\infty$),
+$t_{\mathcal{M}}$ is the interpretation of $t$ in this model.
+
+%In what follows, we describe a way to compte $K_{I, j}$ as well as
+%$A_{S \sqcap S'}$ in regards to the model, so as the assumptions are
+%consistents (and the model satifies them).
+
+If
+$max(a_\mathcal{M}, c_\mathcal{M}) < min(b_\mathcal{M}, d_\mathcal{M})$,
+then $K_{I, J} = [max(a, c), min(b, d))$ (where $max(a, c)$ is $a$
+if $a_\mathcal{M} > c_\mathcal{M}$, else $c$), else it is undefined
+(because in the model, the interpretation of the intervals are indeed
+disjoints).
+
+The intersection of $I$ and $J$ is guided by the model.
+Every time there is a decision to take (such as $a < c$), the values
+of the model are looked at. Those decisions are recorded, as they
+are the assumptions required for this interpretation to be correct. The
+set $A_{S\sqcap S'}$ is composed of those decision. By induction, it is clear that if the same model
+$\mathcal{M}$ is used for every intersection, then $\mathcal{M}$ satisfies $A \cup A' \cup A_{S \sqcap S'}$.
+
+%It is also clear that by induction, if $S$ and $S'$ have the
+%property \ref{distincts}, $S\sqcap S'$ also respect this property.
+
+Then, the intersection of the domains is defined as
+$S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S' \}$. Some intervals $K_{I, J}$ may not be defined
+if they are empty. The associated assumptions set is $A \cup A' \cup A_{S \sqcap S'}$.
+
+Property \ref{distincts} clearly holds if it holds for both $S$ and $S'$.
+
+\vspace{2mm}
+\begin{example}
+
+Let $S = \{ I_1, I_2\} =  \{[0, 10), [12, z)\}$, $A = \{ z > 12 \}$, $S' = \{J\}= \{[15, y)\}$, $A =
+\{ y > 15 \}$.
+
+The model $\mathcal{M}$ is $\{ z \mapsto 16, y \mapsto 20 \}$.
+
+The algorithm intersects $I_1$ with $J$,  which is $\emptyset$ as $12 > 10$. Then it intersects
+$I_2$ with $J$. As $max(15, 12) = 15 < min(z_\mathcal{M}, y_\mathcal{M}) = 16 = z_\mathcal{M}$, the
+intersection is $[15, z)$. The assumptions needed to do this intersection are $15 > 12, y > z, z >
+15$.
+
+The arithmetic domain is then $S\sqcap S' = \{[15, z)\}$ with the associated assumptions $\{z > 12,
+y > 15, 15 > 12, y > z, z > 15\}$.
+
+\end{example}
+
+\paragraph{Negation}
+We want to compute an arithmetic domain for a formula $\lnot \phi$. We assume we have an arithmetic
+domain $S$ (with assumptions $A$) computed for $\phi$. Then property \ref{distincts} holds. There
+are several cases, but here I only explain how the algorithm works if there is no $\infty$ in $S$.
+
+By looking at the values in the model $\mathcal{M}$ of the bounds of the intervals in $S$, we can
+choose inequalities that make $S = \{[a_1, b_1), \ldots, [a_k, b_k)\}$ ordered, i.e. $\forall i$, $A
+\implies b_i < a_{i+1}$.
+
+Then, the arithmetic domain for $\lnot \phi$ is $S' = \{(-\infty, a_1), [b_1, a_1), \ldots, [b_k,
++\infty)\}$, and the assumptions are those in $A$ and the new ones chosen to order $S$.
+
+\vspace{4mm}
+%\begin{definition}[Domains intersection, $S \sqcap S'$ and $A_{S \sqcap S'}$]
+
+%If $S$ and $S'$ are two arithmetic domains associated to the
+%assumptions $A$ and $A'$, then the intersection $S\sqcap S'$ is
+%defined as an arithmetic domain such as\newline
+%$A \cup A' \cup A_{S\sqcap S'} \implies \left(\left(x \in S \land x \in S'\right)\iff x \in S \sqcap S'\right)$\newline (where
+%$x \in S$ means $\left(\bigwedge\limits_{I\in S} x \in I\right)$).
+
+%\label{domains}
+
+%\end{definition}
+
+%\vspace{3mm}
+
+%\begin{definition}[Complementary Domains, $S^c$]
+
+%If $S$ is an arithmetic domain, then $S^c$ is defined as a set of
+%intervals such as
+%$\forall x.\ \left( \exists I \in S.\ x \in I\right) \iff \left( \not\exists I \in S^c.\ x \in I\right)$.
+
+%\label{complementary}
+
+%\end{definition}
+
+%\vspace{3mm}
+
+
+\begin{lemma}[Correctness]
+
+Let $S$ be an arithmetic domain computed with the rules described above, and $A$ the associated set of assumptions.
+
+Then,
+$A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \in S\right)$.
+
+\label{correctness-interpretation}
+
+\end{lemma}
+
+\begin{proof}
+The lemma clearly holds for the base cases. It is correct by construction for the conjunction and the negation as there is an immediate correspondence with intersection and complementary domains.
+Thus, the lemma holds by induction.
+\end{proof}
+
+
+\vspace{4mm}
+
+
+A corollary of property \ref{distincts} is the fact that the cardinality of the reunion of the elements
+of $S$ is the sum of the cardinality of its elements:
+\begin{equation}
+A \implies \sharp\{ x \in S \} = \sum\limits_{I \in S} \sharp\{x \in I\}
+\end{equation}
+
+Moreover, as the formula inside every counting constraints is of the form $t_1 \le x < t_2 \land
+\phi$ (Figure \ref{formula}), it is clear that every interval in S is finite. Then, if $S$ and $A$
+were computed for a formula $\phi$:
+\begin{equation}
+A \implies \sharp\{x \mid \phi(x, \mathbf{y})\} = \sum\limits_{[a, b)\, \in\, S} b - a
+\end{equation}
+
+
+\subsubsection{Termination and Correctness}
+
+\begin{lemma}[Termination]
+
+Algorithm \ref{arith} terminates.
+
+\label{termination}
+
+\end{lemma}
+
+\begin{proof}
+In the former section, we explained how the assumptions set was computed. An
+assumption can be an equality, a disequality or an inequality between two terms
+that appear in the formulas $\phi_i$. Thus, there is a finite number of possible
+set of assumptions.
+
+At every iteration, there is a $\text{\textsc{assert}}(\lnot A)$, hence the fact that there is
+a finite number of iterations.
+\end{proof}
+
+\begin{lemma}[Correctness]
+
+Algorithm \ref{arith} is correct.
+\end{lemma}
+
+\begin{proof}
+Let $G = F \land \bigwedge\limits_{i} c_i = \sharp\{x\mid\phi(x)\}$ be a formula.
+
+If algorithm \ref{arith} returns a model, then with lemma \ref{correctness-interpretation} and property
+\ref{distincts} we can conclude that the model satisfies the formula, as every counting variable of
+$F$ is set to the correct arithmetic expression.
+
+If it returns \texttt{unsat}, and a model $\mathcal{M}$ satisfies $F$ nonetheless. Then $\mathcal{M}$
+satisfies a set of assumptions which has been ruled out by the algorithm (else, as $\mathcal{M}
+\vdash F$, it would be sent by the SMT solver), but the variables $c_i$ do not have a compatible
+interpretation in $\mathcal{M}$ with the symbolic expression computed by the algorithm. Thus, it
+contradicts lemma \ref{correctness-interpretation} or property \ref{distincts}.
+\end{proof}
+
+%\begin{lemma}[Consistency]
+
+%Let $A$ is a set of assumptions computed with the rules described above. Then it is consistent, i.e. the
+%conjunction of it elements is satisfiable.
+
+%\label{consistency}
+
+%\end{lemma}
+
+%\vspace{4mm}
+
+
+%\subsubsection{Interpret a constraint with a
+%model}\label{interpret-a-constraint-with-a-model}
+
+%We are now interested in how we can write an algorithm which provides an
+%arithmetic domain and a set of assumptions from a formula, following the
+%inference rules of the former section. Hence, the only two missing
+%operations are building the domains $S^c$ and $S \sqcap S'$. This
+%algorithm must be correct, but we also want it to ensure several
+%properties, so as the resulting domains can then be used to compute the
+%cardinality at no further cost. These properties are on both the domain
+%and the assumptions associated to it.
+
+%This algorithm uses a model (i.e.~an assignment of the free variables of
+%the formula $F$ of equation \ref{maingoal} whose it is a model of),
+%and computes the arithmetic domain in respect to this model.
+%
+%\vspace{3mm}
+
+%If the property \ref{distinct} holds and every interval of $S$ is
+%finite, then:
+
+%$A \implies \sharp\{ x \in S \} = \sum\limits_{[a, b) \in S} b - a$.
+
+
+%\subsubsection{Algorithm to solve arithmetic counting
+%constraints}\label{algorithm-to-solve-arithmetic-counting-constraints}
+
+%We describe an algorithm to solve a formula:
+
+%\begin{equation}
+%F(\mathbf{y}, c_1, \ldots, c_n) \land
+%\bigwedge_{i = 1} ^n c_i = \sharp\{x\ |\ \phi_i(\mathbf{y}, c_1, \ldots, c_n, x)\}
+%\end{equation}
+
+%where $F$ does not contain counting constraints.
+
+%We assume we have an SMT solver that can solve formulas written with the
+%theories
+%$\mathbf{T}_\mathbb{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots, \mathbf{T}_m$.
+%It needs to support some operations (besides the variable definitions):
+%\texttt{assert} (adds a formula to the current context),
+%\texttt{check-sat} (checks the satisfiability of the conjunction of the
+%formulas in the current context), \texttt{push} (creates a new context
+%with the current context formula), \texttt{pop} (restores the context to
+%the last \texttt{push} call). These operations are supported by most
+%modern SMT solvers which can work in an incremental way.
+%
+%The algorithm \ref{arith} works as follows: it asks for a model
+%$\mathcal{M}$ of the formula $F$, then interpret every counting
+%constraints to a symbolic expression under some assumptions. The
+%equality between those expressions and the $c_i$, as well as the
+%assumptions are then enforced with an \texttt{assert}. Then, if the
+%solver says it is satisfiable, the values of the $c_i$ in the new
+%model respect the counting constraints equations. If it is not, then it
+%means that the assumptions $A$ and the counting constraints equations
+%are not consistent, thus $\lnot A$ can be asserted, and we can re-try.
+%
+%\vspace{3mm}
+
+%\begin{lemma}[Termination]
+%
+%Algorithm \ref{arith} terminates.
+%
+%\label{termination}
+%
+%\end{lemma}
+%
+%\begin{proof}
+%In the former section, we explained how the assumptions set was computed. An
+%assumption can be an equality, a disequality or an inequality between two terms
+%that appear in the formulas $\phi_i$. Thus, there is a finite number of possible
+%set of assumptions.
+%
+%At every iteration, there is a $\text{\textsc{assert}}(\lnot A)$, hence the fact that there is
+%a finite number of iterations.
+%\end{proof}
+%
+%\vspace{3mm}
+%
+%\begin{lemma}[Correctness]
+%
+%\label{correctness}
+%
+%\end{lemma}
+%
+%\begin{proof}TODO\end{proof}
+%
+%\paragraph{Example}\label{example}
+%
+%TODO
+%
+\subsection{Implementation}
+
+I implemented the algorithm described above as an overlay on an existing SMT solver. Any solver
+compatible with the SMT-LIB format \cite{barrett2010smt} and which can work in incremental mode can
+be used.I mostly experimented with Yices and Z3. The code is available at
+\url{https://github.com/xapantu/counting-smt/}.
+
+The counting solver takes a file in the SMT-LIB format \cite{barrett2010smt}, with some extensions
+to specify the constraints. It forwards most of the commands to the underlying solver. It only
+extracts the syntax extension to specify counting constraints and execute the algorithm \ref{arith}
+when it sees $\texttt{check-sat}$.
+
+The counting solver and the SMT solver interacts via plain text SMT-LIB  commands, which is far from
+optimal. The obvious benefits are that it is easier to implement and most SMT solvers are compatible
+for free.
+
+
+\ifthenelse{0=1}
+{
+\section{Solving Counting Constraints with
+Arrays}\label{solving-counting-constraints-with-arrays}
+
+In this section, we describe an extension of the previous algorithm to
+deal with arrays. The syntax for $k$ arrays $a_1, \ldots, a_k$ is
+described in Figure \ref{syntaxarray}. It is important to note that
+arrays are only accessed on the quantified variable, and not on a
+general term built on this variable (such as $x + 1$, or a nested
+array read). Removing this syntax restriction leads to an undecidable
+array theory fragment, as stated in
+\cite{bradley2006s}, even for small additions to the
+fragment.
+
+An array has a size, which is an arithmetic variable of the theory
+$\mathbf{T}_\mathbb{Z}$. This is similar to
+\cite{AlbertiGP16} (with the subtle difference that
+different arrays can have different size) but unlike
+\cite{ConchonGKMZ12}, whose fragment does not
+provide a syntax to express array length. In the context of fault
+tolerant systems, this is an important detail, as we typically want to
+specify that a fraction of the systems can be faulty.
+
+As soon as there is an array term in the counting constraints, the
+cardinality can no longer be infinite, as the array can only be accessed
+on a finite interval.
+
+It may be interesting to have array reads outside of the counting
+constraints, but they can be rewritten as counting constraints, like in
+\cite{bradley2006s} or
+\cite{AlbertiGP16}. In the next section we explain
+how this algorithm can be changed to work with the usual arrays of an
+SMT solver.
+
+\begin{figure}[h]
+\begin{grammar}
+    
+<counting constraints> $\psi(x)$ ::= $\psi(x)$ $\land$ $\psi(x)$
+\alt $\psi(x)$ $\lor$ $\psi(x)$
+\alt $\lnot$ $\psi(x)$
+\alt <atoms> of $\mathbf{T}_i$ where $x$ does not appear
+\alt $x \leq y$ where $y$ is a variable of $\mathbf{T}_\mathbb{Z}$
+\alt $y \textless x$ where $y$ is a variable of $\mathbf{T}_\mathbb{Z}$
+\alt $\phi(a_1[x], \ldots, a_k[x])$ where $\phi$ does not have counting constraints
+
+
+\end{grammar}
+\caption{Array Extension}
+\label{syntaxarray}
+\end{figure}
+
+\subsection{Algorithm}\label{algorithm}
+
+The algorithm to solve counting constraints with arrays is mostly the
+same as algorithm \ref{arith}, the main difference is that the
+constraints on the arrays must be saved and then be consistent.
+
+During my internship, I experimented several possible algorithms to
+manipulate those constraints. The algorithm I describe here might seem a
+bit brutal as it extensively rely on the underlying SMT solver, but it
+worked better than the other attempts, probably because a modern SMT
+solver can be much more efficient than a less optimized specialized
+algorithm.
+
+\subsubsection{Arithmetic And Arrays
+Domains}\label{arithmetic-and-arrays-domains}
+
+\begin{definition}[Array Constraint]
+
+An array constraint is a first order, quantifier free, formula whose
+free variables are the free variables of the formula and the variables
+$a_1[\cdot], \ldots, a_k[\cdot]$.
+
+\label{array}
+
+\end{definition}
+
+\vspace{3mm}
+
+\begin{definition}[Domain]
+
+An domain is a finite set of symbolic intervals (definition
+\ref{symbolic}), every one of them associated to an array constraint
+(definition \ref{array}).
+
+\label{domain}
+
+\end{definition}
+
+An arithmetic domain (definition \ref{arithmetic}) can then be seen as a
+domain whose every symbolic interval is associated to the constraint
+\texttt{true}.
+
+Figure \ref{arraybases} introduces the rules for the base cases of
+domain computations. The conjunction and the negation are still done
+according to the rules \ref{not} and \ref{and}.
+
+\begin{figure}[h]
+\begin{prooftree}
+\AxiomC{}
+\UnaryInfC{$((-\infty, +\infty), \phi(a_1[x], \ldots, a_k[x])), \emptyset \vdash \phi(a_1[x], \ldots, a_k[x])$}
+\end{prooftree}
+\begin{prooftree}
+\AxiomC{}
+\UnaryInfC{$([y; +\infty), \top), \emptyset \vdash y \leq x$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{}
+\UnaryInfC{$((-\infty; y), \top), \emptyset \vdash x < y$}
+\end{prooftree}
+
+\caption{Base Cases}
+\label{arraybases}
+\end{figure}
+
+So, we need to redefine the operations of intersection ($S \sqcap S'$)
+and negation ($S^c$) for those domains.
+
+\subsubsection{Intersection and negation of the
+domains}\label{intersection-and-negation-of-the-domains}
+
+Let $S$ and $S'$ two domains. The intersection is done the same way
+it is done for arithmetic domains, but when intersecting two symbolic
+intervals, if the resulting intervals is not empty, then we associate to
+the result the conjunction of the two array constraints.
+
+\subsubsection{Enforcing the Domains}\label{enforcing-the-domains}
+
+We now want to generate a set of constraints that are equivalent to the
+satisfiability of the formula and the counting constraints.
+
+We start from a set of $l$ domains (one for every counting
+constraints) and generate a set of arithmetic constraints.
+
+\paragraph{Slice}\label{slice}
+
+The first operation we do is what we call \emph{slicing}. It means that
+the domains must be transformed so as they all have the same intervals.
+In practice, we are looking for a subdivision of $[A, B)$ (where $A$
+is the lower bound of every array index and $B$ the upper bound) which
+can be used to express every domains. This is a simple operation that I
+do not detail here, intuitively every bound of the intervals is
+collected, then they are split into equality classes and ordered (in the
+meantime the set of assumptions may be made bigger).
+
+\paragraph{Partition}\label{partition}
+
+At this point we have a set of domains who all have the same intervals
+but different array constraints associated to them. For an interval
+$I$, we consider every constraints associated to it, i.e.
+$\phi_1, \ldots, \phi_l$. From these one we can create a set of formula
+$\psi_1, \ldots, \psi_{l'}$ which are a
+partition\footnote{A partition is a set of formula $\psi_1, \ldots, \psi_n$ such as $\psi_1 \lor \ldots \lor \psi_n \equiv \top$ but $\forall i, j. \; \psi_i \land \psi_j \equiv \bot$.}.
+There can be at most $2^l$ formula, but of course that can be
+dramatically reduced in practice with heuristics such as memoization are
+inclusion detection.
+
+\paragraph{Arithmetic Constraints}\label{arithmetic-constraints}
+
+$I = [a, b)$ is supposed to be a finite interval (or it means that the
+array is accessed on an infinite intervals, which is not supposed to
+happen), so, it has a length $b - a$. As $\psi_1, \ldots, \psi_{l'}$ is a
+partition, it holds that
+$b - a = \sum\limits_{i = 1}^{l'} \sharp\{x \ |\ \psi_i(a_1[x], \ldots, a_n[x])\}$.We
+create a new variable $v_i$ (such as $0 \le v_i$) for every
+$\sharp\{x\ |\ \psi_i(a_1[x], \ldots, a_n[x]\}$ and adds the constraint
+$b - a = \sum v_i$ to the solver. As long as every $\psi_i$ is
+satisfiable, then we can build arrays that satisfy
+$v_i = \sharp\{x\ |\ \psi_i(a_1[x], \ldots, a_n[x]\}$. Hence, we must add
+$v_i > 0 \implies \psi_i(a_{i, 1}, \ldots, a_{i, n})$ (with new variables
+$a_{i, 1}, \ldots$.
+
+\paragraph{Algorithm}\label{algorithm-1}
+
+See algorithm \ref{arrayalgo}.
+
+\begin{algorithm}[h]
+\caption{Satisfiability of arithmetic and formula with counting constraints}
+\begin{algorithmic}[1]
+\State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
+\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
+    \State \Call{push}{\ }
+    \State $A \gets \emptyset$
+    \ForAll{ $i$ in $[1..n]$}
+        \State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
+        $\mathcal{M}$}
+        \State $A \gets A \cup A_i$
+        \If{$S_i$ is infinite}
+            \State \Call{assert}{$\lnot \left( A \right)$}
+            \State \Call{continue}{}
+        \EndIf
+    \EndFor
+    \State \Call{slice}{$(S_i)_i$}
+    \State \Call{partition}{$(S_i)_i$}
+    \State \Call{assert}{$A$}
+    \State \Comment{$v_\alpha$ is a variable corresponding to $phi_\alpha$, that $c_i$ selects}
+    \State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} \sum\limits_{\alpha} v_{\alpha}$}
+    \State \Call{assert-constraints}{$(S_i)_i$}
+    \If {\Call{check-sat}{\ } }
+        \State \Call{pop}{\ }
+        \State \Return{sat}
+    \EndIf
+    \State \Call{pop}{\ }
+    \State \Call{assert}{$\lnot \left( A \right)$}
+\EndWhile
+\State \Return{unsat}
+\end{algorithmic}
+\label{arrayalgo}
+\end{algorithm}
+
+\paragraph{Example}\label{example-1}
+
+TODO
+
+\section{Arrays}\label{arrays}
+
+The previous algorithm transforms every array reads and write into an
+array constraint. This is not very efficient, because the underlying SMT
+solver has no clue regarding the consistency of the values it provides
+for an array read. That's why it is interesting to change this algorithm
+to make it work with a usual array theory of an SMT solver. The
+algorithm then has to take into account the decision that the SMT solver
+when it outputs the constraints, so as the result is consistent
+(i.e.~the arrays are not defined twice).
+
+Unfortunately, as our algorithm operates outside of the solver, the
+interactions they can have are quite limited. Thus, it is important to
+understand how the theory of arrays is usually implemented to make it
+work with the counting constraints algorithm described in the last
+section.
+
+\subsection{The theory of arrays implemented in most SMT
+solvers}\label{the-theory-of-arrays-implemented-in-most-smt-solvers}
+
+A state of the art implementation of the theory of arrays is described
+in \cite{de2009generalized}. More specifically, it
+explains how works the SMT solver Z3.
+
+The only two operations on arrays are \texttt{select} and
+\texttt{store}. \texttt{(select\ a\ x)} access the array $a$ at index
+$x$ (also written $a[x]$), while \texttt{(store\ a\ x\ b)} creates a
+new array whose elements are the same as $a$ but for $x$, where it
+is set to $b$. The two axioms of this theory are:
+
+\begin{subequations}
+    \begin{align}
+        \forall a:(\sigma \implies \tau), i:\sigma, v:\tau\, .\, store(a, i, v)[i] = v
+        \\
+        \forall a:(\sigma \implies \tau), i:\sigma, j:\sigma\, .\, i \neq j \implies store(a, i, v)[j] = a[j]
+    \end{align}
+
+
+    Additionnaly, there is the extensionnality axiom:
+
+    \begin{align}
+        \forall a:(\sigma \implies \tau), b:(\sigma \implies \tau)\, .\, a \neq b \iff \exists i\: a[i] \implies a[i] \neq b[i]
+    \end{align}
+\end{subequations}
+
+For the first two axioms, it is clear that the SMT solver is only going
+to take decisions about terms index which appear inside a \texttt{store}
+and a \texttt{select}. An equality might introduce additional indexes to
+make two arrays different. That's why an array extracted from a model of
+an SMT solver always follows the same pattern: special values are
+defined for a finite number of terms (an over-approximation of those
+terms can be obtained by looking at the formula), and then a default
+value. And the default value does not matter, as long as there is no
+equality.
+
+\subsection{Using an off-the-shelf SMT solver for
+arrays}\label{using-an-off-the-shelf-smt-solver-for-arrays}
+
+Thus, to ensure the consistency of the counting constraint algorithm and
+the SMT solver decisions about arrays, we only have to take into account
+the value at those index terms, and array equality if needed.
+
+The first problem can be solved by tracking those index terms, then
+looking at the model which slice they belong to, and group them by
+slice. Then, for every array constraint $\phi_\alpha$ of this slice,
+some new clauses must be sent to the solver to ensure the consistency of
+this values decided by the SMT solver with the number of $x$ which
+satisfies $\phi_\alpha$
+
+The equality between two arrays must also be tracked, they must be taken
+into account when the arithmetic constraints are expressed at the end of
+the algorithm by adding new array constraints. Some heuristics (such as
+substitution of the arrays when there is equality) can also be used.
+
+\section{DPLL(T)}\label{dpllt}
+
+\subsection{Introduction}\label{introduction-1}
+
+TODO
+
+\subsection{Integration with a general purpose DPLL based SMT
+solver}\label{integration-with-a-general-purpose-dpll-based-smt-solver}
+
+Our algorithm works by assuming a set of assumptions and checking that
+cardinality values that they imply is consistent. The worst case for the
+assumptions is to be a total ordering over every integer variable and an
+assumptions on every atom of the formula. The number of total ordering
+over $n$ variables is
+$n!$\footnote{More than that when the case where two variables are equal is taken into account.},
+which makes the algorithm unpractical if there is not enough constraints
+on those variables in the formula.
+
+That is why it would be interesting to have a better explanation of why
+it is not \texttt{sat} and not only learn that the formula is
+\texttt{unsat} with this particular ordering. That requires an
+explanation from the SMT solver and a better integration with both the
+arithmetic theory and the arrays theory.
+
+Furthermore, partial assumptions are sufficient to compute the bounds of
+a cardinality, and may also be sufficient to detect an inconsistency
+earlier in the solving of the formula, hence avoiding useless
+computations. Some work for abstract sets has already be done in this
+direction \cite{cardinalityset}.
+
+The way the algorithm works is not very different from the way a theory
+is usually modeled in DPLL(T) based solver, the main differences being
+that it has nested formula and has to interact with the array and
+arithmetic theories. So, adapting it to be just another theory in a
+solver may be worthwhile.
+
+\newpage
+
+\section*{Conclusion}
+
+%related work
+%optimization stuff
+
+%In \cite{AlbertiGP16, schweikardt}, there is already a way to solve
+%those formula. However, while they definitively explain that the problem
+%is decidable and why, they heavily rely on quantifier elimination and
+%thus may not be very practical nor easily integrated in modern SMT
+%solvers.
+}{}
+
+\newpage
+\bibliographystyle{plain}
+\bibliography{report}
+
+\end{document}

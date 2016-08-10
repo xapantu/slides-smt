@@ -1,1 +1,0 @@
-# Model Checking Modulo Theories
