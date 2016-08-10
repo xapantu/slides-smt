@@ -168,9 +168,10 @@ there is no nested counting constraints. Furthermore, to keep the algorithm simp
 quantified variable is $x$, every atom of the counting constraint where $x$ appears must be of the form $x < t$ or $t \le x$,
 where $t$ is an arithmetic term where $x$ does not appear. Without loss of generality, we only
 consider the case where $t$  is an arithmetic variable (a new variable equal to an arbitrary term
-can always be added to the formula).
+can always be added to the formula). Atoms such as $2x < y$ are not handled by our algorithm, 
+they could be added but would make it hard to comprehend.
 
-Moreover, it can be shown that every formula in this class is equivalent to a formula of the form:
+It can be shown that every formula in this class is equivalent to a formula of the form:
 \begin{equation}
 F(c_1, \ldots, c_n, \mathbf{y}) \land \bigwedge\limits_{i=1}^n c_i = \sharp\{ x \ |\ \psi_i(x, c_1, \ldots, c_n,
 \mathbf{y})\}
@@ -279,6 +280,9 @@ For this formula, the algorithm works as follows:
 \subsubsection{Constraints
 Interpretation}\label{constraints-interpretation}
 
+In this section, we explain how a set $\sharp\{x\mid\phi(x)\}$ can be symbolically computed under
+some assumptions.
+
 \begin{definition}[Assumptions]
 
 We call assumptions a set $A$ whose elements are literals of the theories
@@ -296,7 +300,7 @@ means the conjunctions of the atoms of $A$.
 A symbolic interval is a couple of values that are either arithmetic
 variables, constants or $\infty$. If $I = [a, b)$, $x \in I$ is
 defined as $x < b \land a \le x$. \newline~\newline
-It is said to be finite if none of the bounds are infinite.
+It is finite if none of the bounds are infinite.
 
 \label{symbolic}
 
@@ -319,7 +323,10 @@ Let S be an arithmetic domain. We write $x \in S$ for
 $\left(\bigvee\limits_{I \in S} x \in I\right)$.
 
 Let $\psi_i$ be one of the formula of the counting constraints. We are going to give rules to compute $(S, A)$ such as
-$A \implies \forall x \left(\psi_i(x, \mathbf{y}) \iff x \in S\right)$.
+$A \implies \forall x \left(\psi_i(x, \mathbf{y}) \iff x \in S\right)$. The goal is to express the
+cardinality $\sharp\{x \mid \psi_i(x)\}$ with an arithmetic formula (see below), which is easy if $S$ is only
+comprised of distinct intervals. That is why we want the set $S$
+to satisfy the following property:
 
 \vspace{4mm}
 
@@ -335,6 +342,10 @@ disjoints\footnote{Here, $x \in I$ is still defined as $a \le x \land x < b$ if 
 \label{distincts}
 
 \end{property}
+
+
+The arithmetic domain and the associated set of assumptions is computed inductively on the formula
+$\psi_i$.
 
 \paragraph{Base cases}
 
