@@ -15,12 +15,12 @@
             pdfborder={0 0 0},
             breaklinks=true}
 \urlstyle{same}
-\IfFileExists{parskip.sty}{%
-\usepackage{parskip}
-}{% else
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{6pt plus 2pt minus 1pt}
-}
+%\IfFileExists{parskip.sty}{%
+%\usepackage{parskip}
+%}{% else
+%\setlength{\parindent}{0pt}
+%\setlength{\parskip}{6pt plus 2pt minus 1pt}
+%}
 \setlength{\emergencystretch}{3em}  % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -55,6 +55,43 @@
 \addcontentsline{toc}{section}{Introduction}
 
 
+This report describes work I did during an internship at SRI
+International, in Menlo Park, CA. During this internship, I
+worked on decision procedures related to symbolic model checking
+of infinite, parametric systems, under the supervision of
+Dejan Jovanović and Bruno Dutertre. 
+
+Model checking aims to establish whether a state-transition
+system satisfies a property usually expressed in temporal logic.
+An important special case is checking whether a state property
+$P$ is an invariant of a system $S$, that is, whether $P$ is true in
+all the reachable states of $S$. For infinite-state systems, this
+problem can be solved using techniques such as bounded model
+checking, $k$-induction, or IC3/PDR \cite{pdr}. All these techniques start with
+a symbolic representation of the property $P$ and of the system $S$ in
+first-order logic and rely on satisfiability modulo theories (SMT)
+solvers as reasoning engines. 
+
+SRI's computer science laboratory is developing a model checker,
+called \href{http://sri-csl.github.io/sally/}{Sally}, that implements bounded model checking, $k$-induction,
+and a variant of IC3.  One of the main applications of Sally is the
+verification of fault-tolerant protocols. Currently, Sally can
+handle protocols with a fixed number of component, but it is being
+extended to parametric protocols, where the number of components is
+not fixed a priori. In this context, a key issue is to efficiently
+handle the so-called counting constraints that occur frequently in
+modeling fault-tolerant protocols. A typical example of counting
+constraints is an assumption of the form "less than one third of
+the processes are faulty". 
+
+During my internship, I first implemented a decision procedure for counting
+constraints in arithmetic then I extended it to counting constraints
+with arrays. Both decision procedures are implemented as overlays to
+an existing SMT solver. The decision procedure for arithmetic is
+described in Section 1. Section 2 presents the extension of this decision procedure to arrays.
+
+\ifthenelse{0=0}{}{
+
 Model checking is used to prove properties of a system. A system is modeled by a set
 of initial states and transitions. State transitions, initial states and properties are expressed in
 first order logic. We are interested in infinite state systems. As it is not possible to enumerate
@@ -73,7 +110,7 @@ During my internship, I worked on a decision procedure for counting constraints 
 procedures were implemented as an overlay to an existing SMT solver.
 
 I did my internship at SRI, California, under the supervision of Bruno Dutertre and Dejan
-Jovanović.
+Jovanović.}
 
 
 %TODO
@@ -248,7 +285,6 @@ the last \texttt{push} call). These operations are supported by most
 modern SMT solvers which can work in an incremental way.
 
 
-\vspace{3mm}
 \begin{example}
 \ \newline Let $F \equiv N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \land c = \sharp\{ x \mid 0 \le x < N \land (x < z \lor x < u) \}$.
 For this formula, the algorithm works as follows:
@@ -293,7 +329,6 @@ means the conjunctions of the atoms of $A$.
 
 \end{definition}
 
-\vspace{3mm}
 
 \begin{definition}[Symbolic Interval]
 
@@ -306,7 +341,6 @@ It is finite if none of the bounds are infinite.
 
 \end{definition}
 
-\vspace{3mm}
 
 \begin{definition}[Arithmetic Domain]
 
@@ -328,7 +362,6 @@ cardinality $\sharp\{x \mid \psi_i(x)\}$ with an arithmetic formula (see below),
 comprised of distinct intervals. That is why we want the set $S$
 to satisfy the following property:
 
-\vspace{4mm}
 
 \begin{property}[Distincts]
 
@@ -409,7 +442,6 @@ if they are empty. The associated assumptions set is $A \cup A' \cup A_{S \sqcap
 
 Property \ref{distincts} clearly holds if it holds for both $S$ and $S'$.
 
-\vspace{2mm}
 \begin{example}
 
 Let $S = \{ I_1, I_2\} =  \{[0, 10), [12, z)\}$, $A = \{ z > 12 \}$, $S' = \{J\}= \{[15, y)\}$, $A =
@@ -439,7 +471,6 @@ choose inequalities that make $S = \{[a_1, b_1), \ldots, [a_k, b_k)\}$ ordered, 
 Then, the arithmetic domain for $\lnot \phi$ is $S' = \{(-\infty, a_1), [b_1, a_1), \ldots, [b_k,
 +\infty)\}$, and the assumptions are those in $A$ and the new ones chosen to order $S$.
 
-\vspace{4mm}
 %\begin{definition}[Domains intersection, $S \sqcap S'$ and $A_{S \sqcap S'}$]
 
 %If $S$ and $S'$ are two arithmetic domains associated to the
@@ -484,7 +515,6 @@ Thus, the lemma holds by induction.
 \end{proof}
 
 
-\vspace{4mm}
 
 
 A corollary of property \ref{distincts} is the fact that the cardinality of the reunion of the elements
@@ -738,7 +768,6 @@ $a_1[\cdot], \ldots, a_k[\cdot]$.
 
 \end{definition}
 
-\vspace{3mm}
 
 \begin{definition}[Domain]
 
