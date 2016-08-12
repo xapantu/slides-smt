@@ -59,7 +59,7 @@ This report describes work I did during an internship at SRI
 International, in Menlo Park, CA. During this internship, I
 worked on decision procedures related to symbolic model checking
 of infinite, parametric systems, under the supervision of
-Dejan Jovanović and Bruno Dutertre. 
+Dejan Jovanović and Bruno Dutertre.
 
 Model checking aims to establish whether a state-transition
 system satisfies a property usually expressed in temporal logic.
@@ -70,7 +70,7 @@ problem can be solved using techniques such as bounded model
 checking, $k$-induction, or IC3/PDR \cite{pdr}. All these techniques start with
 a symbolic representation of the property $P$ and of the system $S$ in
 first-order logic and rely on satisfiability modulo theories (SMT)
-solvers as reasoning engines. 
+solvers as reasoning engines.
 
 SRI's computer science laboratory is developing a model checker,
 called \href{http://sri-csl.github.io/sally/}{Sally}, that implements bounded model checking, $k$-induction,
@@ -81,12 +81,17 @@ extended to parametric protocols, where the number of components is
 not fixed a priori. In this context, a key issue is to efficiently
 handle the so-called counting constraints that occur frequently in
 modeling fault-tolerant protocols. A typical example of counting
-constraints is an assumption of the form "less than one third of
-the processes are faulty". 
+constraints is an assumption of the form ``less than one third of
+the processes are faulty".
+
+Several methods and tools have already been proposed to study parametric protocols. However, they
+are not particularly suited to check fault tolerant protocols. For instance, \textsc{Cubicle}
+\cite{ConchonGKMZ12} is suited to study a class of parametrized protocols including cache coherence
+protocols, but is not equiped to deal with these counting constraints.
 
 During my internship, I first implemented a decision procedure for counting
 constraints in arithmetic then I extended it to counting constraints
-with arrays. Both decision procedures are implemented as overlays to
+with arrays. This decision procedure can then be used with Sally to check parametric fault-tolerant protocols. Both decision procedures are implemented as overlays to
 an existing SMT solver. The decision procedure for arithmetic is
 described in Section 1. Section 2 presents the extension of this decision procedure to arrays.
 
@@ -285,6 +290,7 @@ the last \texttt{push} call). These operations are supported by most
 modern SMT solvers which can work in an incremental way.
 
 
+\newpage
 \begin{example}
 \ \newline Let $F \equiv N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \land c = \sharp\{ x \mid 0 \le x < N \land (x < z \lor x < u) \}$.
 For this formula, the algorithm works as follows:
@@ -313,8 +319,8 @@ For this formula, the algorithm works as follows:
 \end{itemize}
 
 \end{example}
-\subsubsection{Constraints
-Interpretation}\label{constraints-interpretation}
+
+\subsubsection{Constraints Interpretation}
 
 In this section, we explain how a set $\sharp\{x\mid\phi(x)\}$ can be symbolically computed under
 some assumptions.
@@ -570,109 +576,6 @@ interpretation in $\mathcal{M}$ with the symbolic expression computed by the alg
 contradicts lemma \ref{correctness-interpretation} or property \ref{distincts}.
 \end{proof}
 
-%\begin{lemma}[Consistency]
-
-%Let $A$ is a set of assumptions computed with the rules described above. Then it is consistent, i.e. the
-%conjunction of it elements is satisfiable.
-
-%\label{consistency}
-
-%\end{lemma}
-
-%\vspace{4mm}
-
-
-%\subsubsection{Interpret a constraint with a
-%model}\label{interpret-a-constraint-with-a-model}
-
-%We are now interested in how we can write an algorithm which provides an
-%arithmetic domain and a set of assumptions from a formula, following the
-%inference rules of the former section. Hence, the only two missing
-%operations are building the domains $S^c$ and $S \sqcap S'$. This
-%algorithm must be correct, but we also want it to ensure several
-%properties, so as the resulting domains can then be used to compute the
-%cardinality at no further cost. These properties are on both the domain
-%and the assumptions associated to it.
-
-%This algorithm uses a model (i.e.~an assignment of the free variables of
-%the formula $F$ of equation \ref{maingoal} whose it is a model of),
-%and computes the arithmetic domain in respect to this model.
-%
-%\vspace{3mm}
-
-%If the property \ref{distinct} holds and every interval of $S$ is
-%finite, then:
-
-%$A \implies \sharp\{ x \in S \} = \sum\limits_{[a, b) \in S} b - a$.
-
-
-%\subsubsection{Algorithm to solve arithmetic counting
-%constraints}\label{algorithm-to-solve-arithmetic-counting-constraints}
-
-%We describe an algorithm to solve a formula:
-
-%\begin{equation}
-%F(\mathbf{y}, c_1, \ldots, c_n) \land
-%\bigwedge_{i = 1} ^n c_i = \sharp\{x\ |\ \phi_i(\mathbf{y}, c_1, \ldots, c_n, x)\}
-%\end{equation}
-
-%where $F$ does not contain counting constraints.
-
-%We assume we have an SMT solver that can solve formulas written with the
-%theories
-%$\mathbf{T}_\mathbb{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots, \mathbf{T}_m$.
-%It needs to support some operations (besides the variable definitions):
-%\texttt{assert} (adds a formula to the current context),
-%\texttt{check-sat} (checks the satisfiability of the conjunction of the
-%formulas in the current context), \texttt{push} (creates a new context
-%with the current context formula), \texttt{pop} (restores the context to
-%the last \texttt{push} call). These operations are supported by most
-%modern SMT solvers which can work in an incremental way.
-%
-%The algorithm \ref{arith} works as follows: it asks for a model
-%$\mathcal{M}$ of the formula $F$, then interpret every counting
-%constraints to a symbolic expression under some assumptions. The
-%equality between those expressions and the $c_i$, as well as the
-%assumptions are then enforced with an \texttt{assert}. Then, if the
-%solver says it is satisfiable, the values of the $c_i$ in the new
-%model respect the counting constraints equations. If it is not, then it
-%means that the assumptions $A$ and the counting constraints equations
-%are not consistent, thus $\lnot A$ can be asserted, and we can re-try.
-%
-%\vspace{3mm}
-
-%\begin{lemma}[Termination]
-%
-%Algorithm \ref{arith} terminates.
-%
-%\label{termination}
-%
-%\end{lemma}
-%
-%\begin{proof}
-%In the former section, we explained how the assumptions set was computed. An
-%assumption can be an equality, a disequality or an inequality between two terms
-%that appear in the formulas $\phi_i$. Thus, there is a finite number of possible
-%set of assumptions.
-%
-%At every iteration, there is a $\text{\textsc{assert}}(\lnot A)$, hence the fact that there is
-%a finite number of iterations.
-%\end{proof}
-%
-%\vspace{3mm}
-%
-%\begin{lemma}[Correctness]
-%
-%\label{correctness}
-%
-%\end{lemma}
-%
-%\begin{proof}TODO\end{proof}
-%
-%\paragraph{Example}\label{example}
-%
-%TODO
-%
 \subsection{Implementation}
 
 I implemented the algorithm described above as an overlay on an existing SMT solver. Any solver
@@ -690,7 +593,7 @@ optimal. The obvious benefits are that it is easier to implement and most SMT so
 for free.
 
 
-\ifthenelse{0=1}
+\ifthenelse{0=0}
 {
 \section{Solving Counting Constraints with
 Arrays}\label{solving-counting-constraints-with-arrays}
@@ -705,58 +608,69 @@ array theory fragment, as stated in
 \cite{bradley2006s}, even for small additions to the
 fragment.
 
-An array has a size, which is an arithmetic variable of the theory
-$\mathbf{T}_\mathbb{Z}$. This is similar to
-\cite{AlbertiGP16} (with the subtle difference that
-different arrays can have different size) but unlike
-\cite{ConchonGKMZ12}, whose fragment does not
-provide a syntax to express array length. In the context of fault
-tolerant systems, this is an important detail, as we typically want to
-specify that a fraction of the systems can be faulty.
-
-As soon as there is an array term in the counting constraints, the
-cardinality can no longer be infinite, as the array can only be accessed
-on a finite interval.
-
-It may be interesting to have array reads outside of the counting
-constraints, but they can be rewritten as counting constraints, like in
-\cite{bradley2006s} or
-\cite{AlbertiGP16}. In the next section we explain
-how this algorithm can be changed to work with the usual arrays of an
-SMT solver.
+In additions to the restriction already described in the first section, it is also necessary for the
+formulas inside counting constraints to not have atoms whith both an array read $a_i[x]$ and $x$,
+that is, atoms like $a_i[x] = x$ are forbidden.
 
 \begin{figure}[h]
 \begin{grammar}
     
-<counting constraints> $\psi(x)$ ::= $\psi(x)$ $\land$ $\psi(x)$
-\alt $\psi(x)$ $\lor$ $\psi(x)$
-\alt $\lnot$ $\psi(x)$
-\alt <atoms> of $\mathbf{T}_i$ where $x$ does not appear
-\alt $x \leq y$ where $y$ is a variable of $\mathbf{T}_\mathbb{Z}$
-\alt $y \textless x$ where $y$ is a variable of $\mathbf{T}_\mathbb{Z}$
-\alt $\phi(a_1[x], \ldots, a_k[x])$ where $\phi$ does not have counting constraints
-
+<formulas> $\phi$ ::= $\phi$ $\land$ $\phi$
+\alt $\phi$ $\lor$ $\phi$
+\alt $\lnot$ $\phi$
+\alt $\langle atoms\rangle$ of $\mathbf{T}_i$
+\alt $c = \sharp\{ x \mid y\ \text{\textless}\ x \le z \land \phi(x, a_1[x], \ldots, a_k[x]) \}$ where $c, y, z$ are variables of $\mathbf{T}_\mathbb{Z}$
 
 \end{grammar}
 \caption{Array Extension}
 \label{syntaxarray}
 \end{figure}
 
-\subsection{Algorithm}\label{algorithm}
+
+An array has a size, which is an arithmetic variable of the theory
+$\mathbf{T}_\mathbb{Z}$. This is similar to the model checker \textsc{Arca}
+\cite{AlbertiGP16} (with the subtle difference that
+different arrays can have different size) but unlike \textsc{Cubicle}
+\cite{ConchonGKMZ12}, whose fragment does not
+provide a syntax to express an array length. In the context of fault
+tolerant systems, this is an important detail, as we typically want to
+specify that at most one third of the components are faulty.
+
+The elements of the arrays can be of any sort defined in a theory $\mathbf{T}_i$.
+
+As soon as there is an array term in the counting constraints, the
+cardinality can no longer be infinite, as the array can only be accessed
+on a finite interval, that is, term $a[x]$ implicitely implies that $0 \le x < N$ if $a$ is an array of size $N$.
+
+It may be interesting to have array reads outside of the counting
+constraints. However, they can be rewritten as counting constraints, as in
+\cite{bradley2006s} or
+\cite{AlbertiGP16}: $a[v]$ can be replaced by a new variable $y$ with the additional constraint:
+\begin{equation}
+\sharp\{x\mid x = v \land a[x] = y\} = 1
+\end{equation}
+
+In the implementation section, we explain
+how this algorithm can be changed to work with the usual theory of arrays of an
+SMT solver, which is more efficient.
+
+\subsection{Decision Procedure}
+
+\subsubsection{Overview}
 
 The algorithm to solve counting constraints with arrays is mostly the
-same as algorithm \ref{arith}, the main difference is that the
-constraints on the arrays must be saved and then be consistent.
+same as the one to solve pure arithmetic counting counstraints. While we do the interval analysis,
+we must save the constraints on the arrays. In the end, those constraints must be checked for
+satisfiability and whether they conflict in case there are several constraints for the same interval.
 
 During my internship, I experimented several possible algorithms to
 manipulate those constraints. The algorithm I describe here might seem a
-bit brutal as it extensively rely on the underlying SMT solver, but it
+bit brutal as it extensively rely on the SMT solver, but it
 worked better than the other attempts, probably because a modern SMT
 solver can be much more efficient than a less optimized specialized
 algorithm.
 
-\subsubsection{Arithmetic And Arrays
-Domains}\label{arithmetic-and-arrays-domains}
+\subsubsection{Constraints on the Arrays}
 
 \begin{definition}[Array Constraint]
 
@@ -783,42 +697,9 @@ An arithmetic domain (definition \ref{arithmetic}) can then be seen as a
 domain whose every symbolic interval is associated to the constraint
 \texttt{true}.
 
-Figure \ref{arraybases} introduces the rules for the base cases of
-domain computations. The conjunction and the negation are still done
-according to the rules \ref{not} and \ref{and}.
+\subsubsection{Checking the Constraints on the Arrays}
 
-\begin{figure}[h]
-\begin{prooftree}
-\AxiomC{}
-\UnaryInfC{$((-\infty, +\infty), \phi(a_1[x], \ldots, a_k[x])), \emptyset \vdash \phi(a_1[x], \ldots, a_k[x])$}
-\end{prooftree}
-\begin{prooftree}
-\AxiomC{}
-\UnaryInfC{$([y; +\infty), \top), \emptyset \vdash y \leq x$}
-\end{prooftree}
-
-\begin{prooftree}
-\AxiomC{}
-\UnaryInfC{$((-\infty; y), \top), \emptyset \vdash x < y$}
-\end{prooftree}
-
-\caption{Base Cases}
-\label{arraybases}
-\end{figure}
-
-So, we need to redefine the operations of intersection ($S \sqcap S'$)
-and negation ($S^c$) for those domains.
-
-\subsubsection{Intersection and negation of the
-domains}\label{intersection-and-negation-of-the-domains}
-
-Let $S$ and $S'$ two domains. The intersection is done the same way
-it is done for arithmetic domains, but when intersecting two symbolic
-intervals, if the resulting intervals is not empty, then we associate to
-the result the conjunction of the two array constraints.
-
-\subsubsection{Enforcing the Domains}\label{enforcing-the-domains}
-
+\ifthenelse{0=0}{}{
 We now want to generate a set of constraints that are equivalent to the
 satisfiability of the formula and the counting constraints.
 
@@ -878,10 +759,11 @@ See algorithm \ref{arrayalgo}.
         \State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
         $\mathcal{M}$}
         \State $A \gets A \cup A_i$
+\ifthenelse{0=0}{}{
         \If{$S_i$ is infinite}
             \State \Call{assert}{$\lnot \left( A \right)$}
             \State \Call{continue}{}
-        \EndIf
+        \EndIf}
     \EndFor
     \State \Call{slice}{$(S_i)_i$}
     \State \Call{partition}{$(S_i)_i$}
@@ -904,10 +786,11 @@ See algorithm \ref{arrayalgo}.
 \paragraph{Example}\label{example-1}
 
 TODO
+}
 
-\section{Arrays}\label{arrays}
+\subsection{Implementation}
 
-The previous algorithm transforms every array reads and write into an
+\paragraph{Theory of arrays} The previous algorithm transforms every array read and write into an
 array constraint. This is not very efficient, because the underlying SMT
 solver has no clue regarding the consistency of the values it provides
 for an array read. That's why it is interesting to change this algorithm
@@ -921,9 +804,6 @@ interactions they can have are quite limited. Thus, it is important to
 understand how the theory of arrays is usually implemented to make it
 work with the counting constraints algorithm described in the last
 section.
-
-\subsection{The theory of arrays implemented in most SMT
-solvers}\label{the-theory-of-arrays-implemented-in-most-smt-solvers}
 
 A state of the art implementation of the theory of arrays is described
 in \cite{de2009generalized}. More specifically, it
@@ -960,9 +840,6 @@ terms can be obtained by looking at the formula), and then a default
 value. And the default value does not matter, as long as there is no
 equality.
 
-\subsection{Using an off-the-shelf SMT solver for
-arrays}\label{using-an-off-the-shelf-smt-solver-for-arrays}
-
 Thus, to ensure the consistency of the counting constraint algorithm and
 the SMT solver decisions about arrays, we only have to take into account
 the value at those index terms, and array equality if needed.
@@ -979,14 +856,8 @@ into account when the arithmetic constraints are expressed at the end of
 the algorithm by adding new array constraints. Some heuristics (such as
 substitution of the arrays when there is equality) can also be used.
 
-\section{DPLL(T)}\label{dpllt}
 
-\subsection{Introduction}\label{introduction-1}
-
-TODO
-
-\subsection{Integration with a general purpose DPLL based SMT
-solver}\label{integration-with-a-general-purpose-dpll-based-smt-solver}
+\paragraph{Complexity}
 
 Our algorithm works by assuming a set of assumptions and checking that
 cardinality values that they imply is consistent. The worst case for the
@@ -1015,18 +886,20 @@ that it has nested formula and has to interact with the array and
 arithmetic theories. So, adapting it to be just another theory in a
 solver may be worthwhile.
 
+\ifthenelse{0=0}{}{
 \newpage
 
 \section*{Conclusion}
 
-%related work
-%optimization stuff
+related work
+optimization stuff
 
-%In \cite{AlbertiGP16, schweikardt}, there is already a way to solve
-%those formula. However, while they definitively explain that the problem
-%is decidable and why, they heavily rely on quantifier elimination and
-%thus may not be very practical nor easily integrated in modern SMT
-%solvers.
+In \cite{AlbertiGP16, schweikardt}, there is already a way to solve
+those formula. However, while they definitively explain that the problem
+is decidable and why, they heavily rely on quantifier elimination and
+thus may not be very practical nor easily integrated in modern SMT
+solvers.
+}
 }{}
 
 \newpage
