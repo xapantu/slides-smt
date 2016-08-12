@@ -187,24 +187,26 @@ We now present an algorithm that decides whether a formula of the form
 
 \subsubsection{Overview}
 
-We assume that we already have a solver to solve formulas without
-counting constraints (which can give a model if the formula is
-\texttt{sat}).
+We assume that we have an SMT solver $\mathcal{S}$ that decides satisfiability
+of formulas in theories $\mathbf{T}_\mathcal{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots,
+\mathbf{T}_n$ (i.e. formulas
+without counting constraints). We also assume that $\mathcal{S}$ can produce
+models of satisfiable formulas. 
 
-The algorithm translates every counting constraints in arithmetic expressions. To do that, it needs
+Our decision procedure translates every counting constraints to arithmetic expressions. To do that, it needs
 to make additional assumptions (example 3). We use models constructed by the SMT solver to enumerate every possible set of
 assumptions compatible with formula $F$.
 
-It works as follows: first, the formula without the counting constraints is forwarded to
+Our procedure works as follows: first, the formula without the counting constraints is forwarded to
 the solver we already have. If it is \texttt{unsat}, then the formula with the counting constraints is also
-\texttt{unsat}. Else, we get a model. Then, the algorithm computes a symbolic arithmetic expression for every counting
+\texttt{unsat}. Otherwise, we get a model and we compute a symbolic arithmetic expression for every counting
 constraints, under the assumptions that hold in the model. Then, both the assumptions and the value
-of the counting constraints are added as new clauses to the solver. If it answers \texttt{sat}, then we
-have a model which satisfies the formula with the counting constraints. Else, the solver is
-restored to it previous state, the negation of the assumptions are added to the solver and we
+of the counting constraints are added as new clauses to the solver. If $\mathcal{S}$ answers \texttt{sat}, then we
+have a model which satisfies the formula with the counting constraints. Otherwise, we restore the
+solver to its previous state, we assert the negation of the assumptions and we
 retry the procedure.
 
-A pseudo-code description can be seen in algorithm \ref{arith}.
+A pseudo-code description is shown in algorithm \ref{arith}.
 
 \begin{algorithm}[h]
 \caption{Satisfiability of arithmetic formula with counting constraints}\label{arith}
@@ -236,10 +238,7 @@ A pseudo-code description can be seen in algorithm \ref{arith}.
 \label{arith}
 \end{algorithm}
 
-We assume we have an SMT solver that can solve formulas written with the
-theories
-$\mathbf{T}_\mathbb{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots, \mathbf{T}_m$.
-It needs to support some operations (besides the variable definitions):
+We assume that our SMT solver $\mathcal{S}$ supports the following operations (besides the variable definitions):
 \texttt{assert} (adds a formula to the current context),
 \texttt{check-sat} (checks the satisfiability of the conjunction of the
 formulas in the current context), \texttt{push} (creates a new context
@@ -552,8 +551,8 @@ for free.
 
 \ifthenelse{0=0}
 {
-\section{Solving Counting Constraints with
-Arrays}\label{solving-counting-constraints-with-arrays}
+\section{Counting Constraints with
+Arrays}
 
 In this section, we describe an extension of the previous algorithm to
 deal with arrays. The syntax for $k$ arrays $a_1, \ldots, a_k$ is
@@ -646,7 +645,7 @@ algorithm.
     \State \Call{slice}{$(S_i)_i$}
     \State \Call{partition}{$(S_i)_i$}
     \State \Call{assert}{$A$}
-    \State \Comment{$v_\alpha$ is a variable corresponding to the constraint $\phi_\alpha$, that $c_i$ selects}
+    \State \Comment{$v_\alpha$ is a variable corresponding to a constraint associated to $S_i$}
     \State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} \sum\limits_{\alpha} v_{\alpha}$}
     \State \Call{assert-constraints}{$(S_i)_i$}
     \If {\Call{check-sat}{\ } }
@@ -679,7 +678,7 @@ $a_1[\cdot], \ldots, a_k[\cdot]$.
 
 \begin{definition}[Domain]
 
-An domain is a finite set of symbolic intervals (definition
+A domain is a finite set of symbolic intervals (definition
 \ref{symbolic}), every one of them associated to an array constraint
 (definition \ref{array}).
 
@@ -690,6 +689,15 @@ An domain is a finite set of symbolic intervals (definition
 An arithmetic domain (definition \ref{arithmetic}) can then be seen as a
 domain whose every symbolic interval is associated to the constraint
 \texttt{true}.
+
+Generating an array constraint for every symbolic interval is done while we compute those symbolic
+intervals. The rules for conjunction and negation are updated accordingly. For instance, when we
+look at a conjunction and produce the intersection of every symbolic interval in both domains, we
+associate to this intersection the conjunction of the array constraints of both intervals.
+
+There are additional base cases, which are the literals with $a_1[x], \ldots, a_k[x]$. For those
+case, we return the domain with one symbolic interval, $(-\infty, +\infty)$, associated to the
+constraint which is the literal, and to an empty assumptions set.
 
 \subsubsection{Checking the Constraints on the Arrays}
 
