@@ -111,54 +111,17 @@ procedures were implemented as an overlay to an existing SMT solver.
 I did my internship at SRI, California, under the supervision of Bruno Dutertre and Dejan
 Jovanović.}
 
-
-%TODO
-
-%\section{Model Checking of parameterized and fault tolerant systems}
-
-%TODO
-
-%\subsection{Counting Constraints}
-
-%Model checking usually relies on checking that the negation of a
-%property is unsatisfiable. Properties and transitions can be expressed
-%with first order formulas, with or without quantifiers. This problem is
-%known to be undecidable \cite{apt1986limits}, that
-%is why it is crucial to understand what is the class of formulas used to
-%specify them, and to restrict them if possible.
-
-%Counting constraints provide a way to specify how many integers satisfy
-%a given predicate. Thus, it is a generalization of quantifiers over the
-%integers. For instance, if $a$ is an array of booleans of size $n$,
-%the counting constraint $\sharp\{ x \ |\ a[x]\} > n/2$ specify that
-%more than half the array is set to \texttt{true}. An existential
-%quantifier can be transformed into a constraint involving a cardinality
-%greater than 1, and a universal quantifier into a counting constraint
-%composed of a cardinality equal to 0 (in this case, the predicate will
-%be the negation of the formula).
-%
-%For the class of problems we want to study, they are very adapted to
-%express properties of the systems, such as the maximum fraction of
-%faulty components. However, dealing with several nested quantifiers is
-%hard, and a lot of problems can be modeled with a single level of
-%quantification (i.e.~there is no nested counting constraints terms
-%inside other counting constraints). Thus, this problem can be restricted
-%to this case and still be interesting, and provides a simplified version
-%of quantifiers, while avoiding the requirement to support a more
-%complete class of formulas. SMT formulas with a lot of quantifiers are
-%indeed known to be hard to solve \cite{ge2009complete}.
-
 \section{Counting Constraints for Arithmetic}
 
 We consider a set of distinct theories $\mathbf{T}_\mathbb{Z}$,
 $\mathbf{T}_{eq}$, $\mathbf{T}_2$, \ldots{}, $\mathbf{T}_n$, where
 $\mathbf{T}_\mathbb{Z}$ is the theory of $\mathbb{Z}$, and
-$\mathbf{T}_{eq}$ is the theory of equality between the other theory.
+$\mathbf{T}_{eq}$ is the theory of equality between the other theories.
 Atoms and variables of these theories are defined as usual. In the
 following, a first order formula without quantifiers is defined with the
-grammar \ref{formula}. The terms of the form
+grammar described in Figure \ref{formula}. Terms of the form
 $c = \sharp\{ x\ |\ \psi(x) \}$ are called counting constraints. 
-$\sharp\{ x\ |\ \psi(x)\}$ denotes the cardinality of a subset $S$
+Term $\sharp\{ x\ |\ \psi(x)\}$ denotes the cardinality of a subset $S$
 of $\mathbb{Z}$ such as $x \in S \iff \psi(x)$.
 
 \begin{figure}[h]
@@ -177,35 +140,36 @@ of $\mathbb{Z}$ such as $x \in S \iff \psi(x)$.
 \end{figure}
 
 \begin{example}
-The formula $c = \{x \mid 0 < x \le 10 \land 5 < x \le 10\}$ is equivalent to the formula $c = 5$.
+The formula $c = \sharp\{x \mid 0 < x \le 10 \land 5 < x \le 10\}$ is equivalent to the formula $c = 5$.
 \end{example}
 
-\begin{example} The formula $c = \{x \mid 0 < x \le c + 1\} \land c > 0$ is equivalent to the formula $c = c+1 \land c >0$ and is not satisfiable.
+\begin{example} The formula $c = \sharp\{x \mid 0 < x \le c + 1\} \land c > 0$ is equivalent to the formula $c = c+1 \land c >0$ and is not satisfiable.
 \end{example}
 
-\begin{example} Let  $F \equiv c = \{x \mid 0 < x \le y \land 0 < x \le z\}$. In this case, $c$ can
+\begin{example} Let  $F \equiv c = \sharp\{x \mid 0 < x \le y \land 0 < x \le z\}$. In this case, $c$ can
 not be directly expressed with an arithmetic expression, as the symbolic value depends on whether $y < z$. However, with a disjunction on $y >z$, $F$ is also equivalent to a pure arithmetic formula $(y > z \implies c = y) \lor (y \le z \implies c = z)$.
 \end{example}
 
 Counting constraints provide a way to specify how many integers satisfy
-a given predicate. Thus, it is a generalization of quantifiers over the
+a given predicate. Thus, they generalize quantifiers over the
 integers. An existential
 quantifier can be transformed into a constraint involving a cardinality
 greater than 1, and a universal quantifier into a counting constraint
 composed of a cardinality equal to 0 (in this case, the predicate will
 be the negation of the formula).
 
-However, dealing with quantifiers in SMT formula is known to be a hard problem. Some theories
-support quantifiers elimination, such as arithmetic \cite{cooper}, but these algorithms may not be very
-efficient (even for arithmetic it can be better to instantiate the quantifiers \cite{dutertre2015solving}) and quantifiers elimination is not possible in every theory \cite{bradley2006s}.
+Dealing with quantifiers in SMT formula is known to be a hard problem.
+Some theories, such as arithmetic, support quantifier elimination \cite{cooper}, but
+quantifier elimination is expensive and is not available in every theory \cite{bradley2006s}. Even when quantifier elimination algorithms exist, simpler
+methods based on variable instantiation may work better in practice \cite{dutertre2015solving}. 
 
 That's why we look at a restricted subset of formulas built on the syntax of Figure \ref{formula}:
 there is no nested counting constraints. Furthermore, to keep the algorithm simple, if the
 quantified variable is $x$, every atom of the counting constraint where $x$ appears must be of the form $x < t$ or $t \le x$,
 where $t$ is an arithmetic term where $x$ does not appear. Without loss of generality, we only
 consider the case where $t$  is an arithmetic variable (a new variable equal to an arbitrary term
-can always be added to the formula). Atoms such as $2x < y$ are not handled by our algorithm, 
-they could be added but would make it hard to comprehend.
+can always be added to the formula). Atoms such as $2x < y$ are not handled by our algorithm.
+Handling them can be done using divisibility constraints, but this cause extra complexity.
 
 It can be shown that every formula in this class is equivalent to a formula of the form:
 \begin{equation}
@@ -215,11 +179,12 @@ F(c_1, \ldots, c_n, \mathbf{y}) \land \bigwedge\limits_{i=1}^n c_i = \sharp\{ x 
 \end{equation}
 where no counting constraints appear in $F$.
 
-We are going to explain a way to decide this formula, i.e. saying whether
-they are satisfiable, and if yes give a model that satisfies this
-formula.
-
 \subsection{Decision Procedure}
+
+
+We now present an algorithm that decides whether a formula of the form
+\ref{maingoal} is satisfiable and if so produces a model. 
+
 \subsubsection{Overview}
 
 We assume that we already have a solver to solve formulas without
@@ -662,6 +627,43 @@ worked better than the other attempts, probably because a modern SMT
 solver can be much more efficient than a less optimized specialized
 algorithm.
 
+\begin{algorithm}[h]
+\caption{Satisfiability of arithmetic and formula with counting constraints}
+\begin{algorithmic}[1]
+\State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
+\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
+    \State \Call{push}{\ }
+    \State $A \gets \emptyset$
+    \ForAll{ $i$ in $[1..n]$}
+        \State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
+        $\mathcal{M}$}
+        \State $A \gets A \cup A_i$
+        \If{$S_i$ is infinite}
+            \State \Call{assert}{$\lnot \left( A \right)$}
+            \State \Call{continue}{}
+        \EndIf
+    \EndFor
+    \State \Call{slice}{$(S_i)_i$}
+    \State \Call{partition}{$(S_i)_i$}
+    \State \Call{assert}{$A$}
+    \State \Comment{$v_\alpha$ is a variable corresponding to the constraint $\phi_\alpha$, that $c_i$ selects}
+    \State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} \sum\limits_{\alpha} v_{\alpha}$}
+    \State \Call{assert-constraints}{$(S_i)_i$}
+    \If {\Call{check-sat}{\ } }
+        \State \Call{pop}{\ }
+        \State \Return{sat}
+    \EndIf
+    \State \Call{pop}{\ }
+    \State \Call{assert}{$\lnot \left( A \right)$}
+\EndWhile
+\State \Return{unsat}
+\end{algorithmic}
+\label{arrayalgo}
+\end{algorithm}
+
+\begin{example}
+\end{example}
+
 \subsubsection{Constraints on the Arrays}
 
 \begin{definition}[Array Constraint]
@@ -740,41 +742,6 @@ $a_{i, 1}, \ldots$.
 
 See algorithm \ref{arrayalgo}.
 
-\begin{algorithm}[h]
-\caption{Satisfiability of arithmetic and formula with counting constraints}
-\begin{algorithmic}[1]
-\State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
-\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
-    \State \Call{push}{\ }
-    \State $A \gets \emptyset$
-    \ForAll{ $i$ in $[1..n]$}
-        \State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
-        $\mathcal{M}$}
-        \State $A \gets A \cup A_i$
-\ifthenelse{0=0}{}{
-        \If{$S_i$ is infinite}
-            \State \Call{assert}{$\lnot \left( A \right)$}
-            \State \Call{continue}{}
-        \EndIf}
-    \EndFor
-    \State \Call{slice}{$(S_i)_i$}
-    \State \Call{partition}{$(S_i)_i$}
-    \State \Call{assert}{$A$}
-    \State \Comment{$v_\alpha$ is a variable corresponding to $phi_\alpha$, that $c_i$ selects}
-    \State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} \sum\limits_{\alpha} v_{\alpha}$}
-    \State \Call{assert-constraints}{$(S_i)_i$}
-    \If {\Call{check-sat}{\ } }
-        \State \Call{pop}{\ }
-        \State \Return{sat}
-    \EndIf
-    \State \Call{pop}{\ }
-    \State \Call{assert}{$\lnot \left( A \right)$}
-\EndWhile
-\State \Return{unsat}
-\end{algorithmic}
-\label{arrayalgo}
-\end{algorithm}
-
 \paragraph{Example}\label{example-1}
 
 TODO
@@ -831,6 +798,10 @@ defined for a finite number of terms (an over-approximation of those
 terms can be obtained by looking at the formula), and then a default
 value. And the default value does not matter, as long as there is no
 equality.
+
+\begin{example}
+\end{example}
+
 
 Thus, to ensure the consistency of the counting constraint algorithm and
 the SMT solver decisions about arrays, we only have to take into account
