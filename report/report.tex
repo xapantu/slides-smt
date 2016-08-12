@@ -15,12 +15,6 @@
             pdfborder={0 0 0},
             breaklinks=true}
 \urlstyle{same}
-%\IfFileExists{parskip.sty}{%
-%\usepackage{parskip}
-%}{% else
-%\setlength{\parindent}{0pt}
-%\setlength{\parskip}{6pt plus 2pt minus 1pt}
-%}
 \setlength{\emergencystretch}{3em}  % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
@@ -86,8 +80,8 @@ the processes are faulty".
 
 Several methods and tools have already been proposed to study parametric protocols. However, they
 are not particularly suited to check fault tolerant protocols. For instance, \textsc{Cubicle}
-\cite{ConchonGKMZ12} is suited to study a class of parametrized protocols including cache coherence
-protocols, but is not equiped to deal with these counting constraints.
+\cite{ConchonGKMZ12} is suited to study a class of parameterized protocols including cache coherence
+protocols, but is not equipped to deal with these counting constraints.
 
 During my internship, I first implemented a decision procedure for counting
 constraints in arithmetic then I extended it to counting constraints
@@ -250,7 +244,6 @@ A pseudo-code description can be seen in algorithm \ref{arith}.
 \begin{algorithm}[h]
 \caption{Satisfiability of arithmetic formula with counting constraints}\label{arith}
 \begin{algorithmic}[1]
-%\Procedure{MyProcedure}{}
 \State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
 \While{$\mathcal{M} = $ \Call{check-sat}{\ } }
     \State \Call{push}{\ }
@@ -290,7 +283,6 @@ the last \texttt{push} call). These operations are supported by most
 modern SMT solvers which can work in an incremental way.
 
 
-\newpage
 \begin{example}
 \ \newline Let $F \equiv N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \land c = \sharp\{ x \mid 0 \le x < N \land (x < z \lor x < u) \}$.
 For this formula, the algorithm works as follows:
@@ -421,9 +413,9 @@ defined as the value of $x$ in this model, and more generally for any
 term $t$ of theory $T_{\mathbb{Z}}$ (and $+\infty$, $-\infty$),
 $t_{\mathcal{M}}$ is the interpretation of $t$ in this model.
 
-%In what follows, we describe a way to compte $K_{I, j}$ as well as
+%In what follows, we describe a way to compute $K_{I, j}$ as well as
 %$A_{S \sqcap S'}$ in regards to the model, so as the assumptions are
-%consistents (and the model satifies them).
+%consistent (and the model satisfies them).
 
 If
 $max(a_\mathcal{M}, c_\mathcal{M}) < min(b_\mathcal{M}, d_\mathcal{M})$,
@@ -440,7 +432,7 @@ set $A_{S\sqcap S'}$ is composed of those decision. By induction, it is clear th
 $\mathcal{M}$ is used for every intersection, then $\mathcal{M}$ satisfies $A \cup A' \cup A_{S \sqcap S'}$.
 
 %It is also clear that by induction, if $S$ and $S'$ have the
-%property \ref{distincts}, $S\sqcap S'$ also respect this property.
+%property \ref{distinct}, $S\sqcap S'$ also respect this property.
 
 Then, the intersection of the domains is defined as
 $S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S' \}$. Some intervals $K_{I, J}$ may not be defined
@@ -609,7 +601,7 @@ array theory fragment, as stated in
 fragment.
 
 In additions to the restriction already described in the first section, it is also necessary for the
-formulas inside counting constraints to not have atoms whith both an array read $a_i[x]$ and $x$,
+formulas inside counting constraints to not have atoms with both an array read $a_i[x]$ and $x$,
 that is, atoms like $a_i[x] = x$ are forbidden.
 
 \begin{figure}[h]
@@ -640,7 +632,7 @@ The elements of the arrays can be of any sort defined in a theory $\mathbf{T}_i$
 
 As soon as there is an array term in the counting constraints, the
 cardinality can no longer be infinite, as the array can only be accessed
-on a finite interval, that is, term $a[x]$ implicitely implies that $0 \le x < N$ if $a$ is an array of size $N$.
+on a finite interval, that is, term $a[x]$ implicitly implies that $0 \le x < N$ if $a$ is an array of size $N$.
 
 It may be interesting to have array reads outside of the counting
 constraints. However, they can be rewritten as counting constraints, as in
@@ -659,7 +651,7 @@ SMT solver, which is more efficient.
 \subsubsection{Overview}
 
 The algorithm to solve counting constraints with arrays is mostly the
-same as the one to solve pure arithmetic counting counstraints. While we do the interval analysis,
+same as the one to solve pure arithmetic counting constraints. While we do the interval analysis,
 we must save the constraints on the arrays. In the end, those constraints must be checked for
 satisfiability and whether they conflict in case there are several constraints for the same interval.
 
@@ -823,7 +815,7 @@ is set to $b$. The two axioms of this theory are:
     \end{align}
 
 
-    Additionnaly, there is the extensionnality axiom:
+    Additionnaly, there is the extensionality axiom:
 
     \begin{align}
         \forall a:(\sigma \implies \tau), b:(\sigma \implies \tau)\, .\, a \neq b \iff \exists i\: a[i] \implies a[i] \neq b[i]
@@ -853,8 +845,15 @@ satisfies $\phi_\alpha$
 
 The equality between two arrays must also be tracked, they must be taken
 into account when the arithmetic constraints are expressed at the end of
-the algorithm by adding new array constraints. Some heuristics (such as
-substitution of the arrays when there is equality) can also be used.
+the algorithm by adding new array constraints. In my implementation, some heuristics (such as
+substitution of the arrays when there is equality) are also used.
+
+However, for model checking, one way of the extensionality axiom can be dropped. If $a \neq b$, it
+does not have to reflect in the existence of an $i$ such as $a[i] \neq b[i]$. In our example, an
+equality is always produced by an assignment, and that is why $\lnot (a = b)$ is better interpreted
+as an undefined behavior than a disequality. My tests showed that making equality not extensional
+(and thus avoiding an extra array constraint) did not provide a significant performance gain, that
+is why my implementation has an extensional equality, as it would be confusing for no gain.
 
 
 \paragraph{Complexity}
