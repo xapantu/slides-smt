@@ -30,6 +30,9 @@
 
 \usepackage{todonotes}
 
+\DeclareMathOperator{\qflia}{\mathbf{T}_\mathbb{LIA}}
+\DeclareMathOperator{\qfclia}{\mathbf{T}^\#_\mathbb{LIA}}
+
 \title{Solving Counting Constraints on First Order Formulas in SMT}
 \date{August 28, 2016}
 
@@ -135,41 +138,69 @@ Jovanović.}
 \section{Counting Constraints for Arithmetic}
 \label{sec:arith}
 
-We consider a set of distinct theories $\mathbf{T}_\mathbb{Z}$,
-$\mathbf{T}_{eq}$, $\mathbf{T}_2$, \ldots{}, $\mathbf{T}_n$, where
-$\mathbf{T}_\mathbb{Z}$ is the theory of $\mathbb{Z}$, and
-$\mathbf{T}_{eq}$ is the theory of equality between the other theories.
-Atoms and variables of these theories are defined as usual. In the
-following, a first order formula without quantifiers is defined with the
-grammar described in Figure \ref{formula}. Terms of the form
-$c = \sharp\{ x\ |\ \psi(x) \}$ are called counting constraints.
-Term $\sharp\{ x\ |\ \psi(x)\}$ denotes the cardinality of a subset $S$
-of $\mathbb{Z}$ such as $x \in S \iff \psi(x)$.
+We will work in the setting of satisfiability modulo theories
+\cite{smt}, specifically in the quantifier-free theory of linear
+integer arithmetic $\qflia$. As usual, we assume a set of variables
+ranging over $\mathbb{Z}$, and atoms as linear constraints over these
+variables. A model $\mathcal{M}$ in $\qflia$ is an assignment of
+variable to values in $\mathbb{Z}$. Given a model $\mathcal{M}$, we can construct
+a new model where we assign a variable $x$ to a value $v$ and the rest
+of the assignment unmodified, which we denote with $\mathcal{M}^v_x$.
+As usual, when a formula $\phi$ evaluates to true in the model $\mathcal{M}$,
+we say that $\phi$ is satisfied in $\mathcal{M}$ and denote this with
+$\mathcal{M} \vDash \phi$.
+
+We extend the usual language of $\qflia$ with counting
+constraints and call this theory $\qfclia$, with formulas in this
+theory described in Figure \ref{formula}.
 
 \begin{figure}[h]
 \begin{grammar}
-
 <formulas> $\phi$ ::= $\phi$ $\land$ $\phi$
 \alt $\phi$ $\lor$ $\phi$
 \alt $\lnot$ $\phi$
-\alt <atoms> of $\mathbf{T}_i$
-\alt $c = \sharp\{ x \mid y\ \text{\textless}\ x \le z \land \phi(x) \}$ where $c, y, z$ are variables of $\mathbf{T}_\mathbb{Z}$
-
+\alt <atoms> of $\qflia$
+\alt $c = \sharp\lbrace k \mid \phi \rbrace$
 \end{grammar}
 
 \caption{Formula syntax}
 \label{formula}
 \end{figure}
 
+Constraints of the form $c = \sharp\{ k\ |\ \psi \}$ are called
+\emph{counting constraints} and denote the number of solutions for $k$
+that satisfy the formula $\phi$.\todo{Can $\phi$ include other
+counting constraints?} More formally, given a model $\mathcal{M}$ that
+assigns all variables other than $k$, the term $\sharp\{ k\ |\ \psi \}$
+denotes the cardinality of the set $S \subseteq \mathbb{Z}$ such that
+$v \in S \iff \mathcal{M}^v_k \vDash \psi$. In order for the semantics
+of the counting terms to be well defined, we assume that all counting
+terms are over formulas that ensure $k$ is always bounded.
+
 \begin{example}
-The formula $c = \sharp\{x \mid 0 < x \le 10 \land 5 < x \le 10\}$ is equivalent to the formula $c = 5$.
+The formula $c = \sharp\{k \mid 0 < k \le 10 \land 5 < k \le 10\}$ is
+satisfied in a model $c \mapsto 5$.
 \end{example}
 
-\begin{example} The formula $c = \sharp\{x \mid 0 < x \le c + 1\} \land c > 0$ is equivalent to the formula $c = c+1 \land c >0$ and is not satisfiable.
+\begin{example}
+The formula $c = \sharp\{k \mid 0 < k \le c + 1\} \land c > 0$ is
+not satisfiable. This is because the formula is equivalent to the
+formula $c = c+1 \land c >0$ which is not satisfiable.
 \end{example}
 
-\begin{example} Let  $F \equiv c = \sharp\{x \mid 0 < x \le y \land 0 < x \le z\}$. In this case, $c$ can
-not be directly expressed with an arithmetic expression, as the symbolic value depends on whether $y < z$. However, with a disjunction on $y >z$, $F$ is also equivalent to a pure arithmetic formula $(y > z \implies c = y) \lor (y \le z \implies c = z)$.
+Example above illustrates that, in the theory $\qfclia$, formulas with
+counting constraints can be reduced to formulas in $\qflia$. But, in
+order to do so, in general many different cases need to be considered. 
+
+\begin{example}
+
+Let  $F$ be the formula $c = \sharp\{x \mid 0 < x \le y \land 0 < x
+\le z\}$. In this case, $c$ can not be directly expressed with an
+arithmetic expression, as the symbolic value depends on whether $y <
+z$. However, with a disjunction on $y >z$, $F$ is also equivalent to a
+pure arithmetic formula $(y > z \implies c = y) \lor (y \le z \implies
+c = z)$.
+
 \end{example}
 
 Counting constraints provide a way to specify how many integers satisfy
