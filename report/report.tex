@@ -28,6 +28,8 @@
 \usepackage[noend]{algpseudocode}
 \setcounter{secnumdepth}{3}
 
+\usepackage{todonotes}
+
 \title{Solving Counting Constraints on First Order Formulas in SMT}
 \date{August 28, 2016}
 
@@ -50,44 +52,63 @@
 
 
 This report describes work I did during an internship at SRI
-International, in Menlo Park, CA. During this internship, I
-worked on decision procedures related to symbolic model checking
-of infinite, parametric systems, under the supervision of
-Dejan Jovanović and Bruno Dutertre.
+International, in Menlo Park, CA. During this internship, I worked on
+decision procedures related to symbolic model checking of parametric
+systems that are infinite-state and fault-tolerant, under the
+supervision of Dejan Jovanović and Bruno Dutertre.
 
-Model checking aims to establish whether a state-transition
-system satisfies a property usually expressed in temporal logic.
-An important special case is checking whether a state property
-$P$ is an invariant of a system $S$, that is, whether $P$ is true in
-all the reachable states of $S$. For infinite-state systems, this
-problem can be solved using techniques such as bounded model
-checking, $k$-induction, or IC3/PDR \cite{pdr}. All these techniques start with
-a symbolic representation of the property $P$ and of the system $S$ in
+Model checking is a set of techniques that aim to establish whether a
+system, described as a state-transition system, satisfies a property.
+Both the system and the property are usually expressed in a suitable
+logical formalism, such as first-order logic, while the properties
+sometimes also includes temporal aspects such as ``always'' or
+``eventually''. A fundamental class of properties is the case of
+\emph{safety} properties, where the property $P$ expresses an
+invariant of a system $S$. That is, we are interested in checking
+whether $P$ is true in all the reachable states of the system $S$. For
+infinite-state systems, the most common ways of proving/dis-proving a
+property are based on techniques such as bounded model checking
+\cite{bmc}, $k$-induction \cite{kind}, or IC3/PDR \cite{pdr}. In the
+case of infinite-state systems, these techniques start with a
+symbolic representation of the property $P$ and of the system $S$ in
 first-order logic and rely on satisfiability modulo theories (SMT)
-solvers as reasoning engines.
+solvers \cite{smt} as reasoning engines.
 
 SRI's computer science laboratory is developing a model checker,
-called \href{http://sri-csl.github.io/sally/}{Sally}, that implements bounded model checking, $k$-induction,
-and a variant of IC3.  One of the main applications of Sally is the
-verification of fault-tolerant protocols. Currently, Sally can
-handle protocols with a fixed number of component, but it is being
-extended to parametric protocols, where the number of components is
-not fixed a priori. In this context, a key issue is to efficiently
-handle the so-called counting constraints that occur frequently in
-modeling fault-tolerant protocols. A typical example of counting
-constraints is an assumption of the form ``less than one third of
-the processes are faulty".
+called Sally\footnote{\url{http://sri-csl.github.io/sally/}}, that
+implements bounded model checking, $k$-induction, and a variant of IC3
+\cite{pdkind}. One of the main applications of Sally is  verification
+of fault-tolerant protocols. Currently, Sally can handle protocols
+with a fixed number of component, but it is being extended to
+parametric protocols, where the number of components is not fixed a
+priori. In this context, a key issue is to be able to model and reason
+symbolically about constraints that can express ``counting'' the
+number of solutions. The ability to reason about number of solutions
+is specially important in modeling of fault-tolerant protocols. A
+typical example of counting constraints is an assumption of the form
+``less than one third of the processes are faulty".
 
-Several methods and tools have already been proposed to study parametric protocols. However, they
-are not particularly suited to check fault tolerant protocols. For instance, \textsc{Cubicle}
-\cite{ConchonGKMZ12} is suited to study a class of parameterized protocols including cache coherence
-protocols, but is not equipped to deal with these counting constraints.
+Several methods and tools have already been proposed to study
+parametric protocols. However, they are not particularly suited to
+check fault tolerant protocols. For instance, \textsc{Cubicle}
+\cite{ConchonGKMZ12} is suited to study a class of parameterized
+protocols including cache coherence protocols, but is not equipped to
+deal with these counting constraints. On the other hand, recent
+developments of the MCMT framework \cite{mcmtcounting} allow for
+counting constraints, but the proposed decision procedures are mostly
+theoretical and can not be integrated well into an invariant-discovery
+algorithm such as IC3 that requires features such as interpolation and
+generalization.
 
-During my internship, I first implemented a decision procedure for counting
-constraints in arithmetic then I extended it to counting constraints
-with arrays. This decision procedure can then be used with Sally to check parametric fault-tolerant protocols. Both decision procedures are implemented as overlays to
-an existing SMT solver. The decision procedure for arithmetic is
-described in Section 1. Section 2 presents the extension of this decision procedure to arrays.
+During my internship, I first implemented a decision procedure for
+counting constraints in arithmetic, and then extended it to counting
+constraints that can also support arrays. This decision procedure can
+then be used with Sally to check parametric fault-tolerant protocols.
+Both decision procedures are implemented as overlays to an existing
+SMT solver making them readily applicable on top of existing
+tecnology. The decision procedure for arithmetic is described in
+Section \ref{sec:arith}. Section \ref{sec:arrays} presents the
+extension of this decision procedure to arrays.
 
 \ifthenelse{0=0}{}{
 
@@ -112,6 +133,7 @@ I did my internship at SRI, California, under the supervision of Bruno Dutertre 
 Jovanović.}
 
 \section{Counting Constraints for Arithmetic}
+\label{sec:arith}
 
 We consider a set of distinct theories $\mathbf{T}_\mathbb{Z}$,
 $\mathbf{T}_{eq}$, $\mathbf{T}_2$, \ldots{}, $\mathbf{T}_n$, where
@@ -120,13 +142,13 @@ $\mathbf{T}_{eq}$ is the theory of equality between the other theories.
 Atoms and variables of these theories are defined as usual. In the
 following, a first order formula without quantifiers is defined with the
 grammar described in Figure \ref{formula}. Terms of the form
-$c = \sharp\{ x\ |\ \psi(x) \}$ are called counting constraints. 
+$c = \sharp\{ x\ |\ \psi(x) \}$ are called counting constraints.
 Term $\sharp\{ x\ |\ \psi(x)\}$ denotes the cardinality of a subset $S$
 of $\mathbb{Z}$ such as $x \in S \iff \psi(x)$.
 
 \begin{figure}[h]
 \begin{grammar}
-    
+
 <formulas> $\phi$ ::= $\phi$ $\land$ $\phi$
 \alt $\phi$ $\lor$ $\phi$
 \alt $\lnot$ $\phi$
@@ -161,7 +183,7 @@ be the negation of the formula).
 Dealing with quantifiers in SMT formula is known to be a hard problem.
 Some theories, such as arithmetic, support quantifier elimination \cite{cooper}, but
 quantifier elimination is expensive and is not available in every theory \cite{bradley2006s}. Even when quantifier elimination algorithms exist, simpler
-methods based on variable instantiation may work better in practice \cite{dutertre2015solving}. 
+methods based on variable instantiation may work better in practice \cite{dutertre2015solving}.
 
 That's why we look at a restricted subset of formulas built on the syntax of Figure \ref{formula}:
 there is no nested counting constraints. Furthermore, to keep the algorithm simple, if the
@@ -183,7 +205,7 @@ where no counting constraints appear in $F$.
 
 
 We now present an algorithm that decides whether a formula of the form
-\ref{maingoal} is satisfiable and if so produces a model. 
+\ref{maingoal} is satisfiable and if so produces a model.
 
 \subsubsection{Overview}
 
@@ -191,7 +213,7 @@ We assume that we have an SMT solver $\mathcal{S}$ that decides satisfiability
 of formulas in theories $\mathbf{T}_\mathcal{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots,
 \mathbf{T}_n$ (i.e. formulas
 without counting constraints). We also assume that $\mathcal{S}$ can produce
-models of satisfiable formulas. 
+models of satisfiable formulas.
 
 Our decision procedure translates every counting constraints to arithmetic expressions. To do that, it needs
 to make additional assumptions (example 3). We use models constructed by the SMT solver to enumerate every possible set of
@@ -553,6 +575,7 @@ for free.
 {
 \section{Counting Constraints with
 Arrays}
+\label{sec:arrays}
 
 In this section, we describe an extension of the previous algorithm to
 deal with arrays. The syntax for $k$ arrays $a_1, \ldots, a_k$ is
@@ -570,7 +593,7 @@ that is, atoms like $a_i[x] = x$ are forbidden.
 
 \begin{figure}[h]
 \begin{grammar}
-    
+
 <formulas> $\phi$ ::= $\phi$ $\land$ $\phi$
 \alt $\phi$ $\lor$ $\phi$
 \alt $\lnot$ $\phi$
