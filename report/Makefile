@@ -1,7 +1,7 @@
-all:report.pdf
+all: report.pdf
 
-report.pdf: report.bib report.tex
-	latex report
+report.pdf: report.bib *.tex
+	pdflatex report
 	bibtex report
 	pdflatex report
 	pdflatex report
