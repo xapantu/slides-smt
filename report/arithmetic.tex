@@ -2,16 +2,17 @@
 % !TEX program = pdflatex
 
 We will work in the setting of satisfiability modulo theories
-\cite{smt}, specifically in the quantifier-free theory of linear
-integer arithmetic $\qflia$. As usual, we assume a set of variables
-ranging over $\mathbb{Z}$, and atoms as linear constraints over these
-variables. A model $\mathcal{M}$ in $\qflia$ is an assignment of
-variable to values in $\mathbb{Z}$. Given a model $\mathcal{M}$, we
-can construct a new model where we assign a variable $x$ to a value
-$v$ and the rest of the assignment unmodified, which we denote with
-$\mathcal{M}^v_x$. As usual, when a formula $\phi$ evaluates to true
-in the model $\mathcal{M}$, we say that $\phi$ is satisfied in
-$\mathcal{M}$ and denote this with $\mathcal{M} \vDash \phi$.
+\cite{barrett2009satisfiability}, specifically in the quantifier-free
+theory of linear integer arithmetic $\qflia$. As usual, we assume a
+set of variables ranging over $\mathbb{Z}$, and atoms as linear
+constraints over these variables. A model $\mathcal{M}$ in $\qflia$ is
+an assignment of variable to values in $\mathbb{Z}$. Given a model
+$\mathcal{M}$, we can construct a new model where we assign a variable
+$x$ to a value $v$ and the rest of the assignment unmodified, which we
+denote with $\mathcal{M}^v_x$. As usual, when a formula $\phi$
+evaluates to true in the model $\mathcal{M}$, we say that $\phi$ is
+satisfied in $\mathcal{M}$ and denote this with $\mathcal{M} \vDash
+\phi$.
 
 We extend the usual language of $\qflia$ with counting constraints and
 call this theory $\qfclia$, with formulas in this theory described in
@@ -90,13 +91,13 @@ in which the counting is not bounded and can evaluate to $+\infty$.}\todo{Check 
 \end{align*}
 
 Reasoning with quantifiers in SMT is known to be a hard problem
-\cite{arithquantifiers}. Some theories, such as arithmetic, support
-quantifier elimination \cite{cooper}. But, the complexity of
-quantifier elimination is prohibitive for practical applications and
-may not be available for some theories of interest, such as the theory of
-arrays \cite{bradley2006s}. Even when a theory admits quantifier
-elimination,  simpler methods based on variable instantiation may work
-better in practice \cite{dutertre2015solving}.
+\cite{ge2010solving,weispfenning1988complexity}. Some theories, such
+as arithmetic, support quantifier elimination \cite{cooper}. But, the
+complexity of quantifier elimination is prohibitive for practical
+applications and may not be available for some theories of interest,
+such as the theory of arrays \cite{bradley2006s}. Even when a theory
+admits quantifier elimination,  simpler methods based on variable
+instantiation may work better in practice \cite{dutertre2015solving}.
 
 In our context, we are looking at a restricted fragment of formulas
 built on the syntax of Figure \ref{formula}. In this fragment there is
