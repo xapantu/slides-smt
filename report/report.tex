@@ -1,37 +1,25 @@
 \documentclass[]{article}
-\usepackage{lmodern}
 \usepackage{amssymb,amsmath}
-\usepackage{ifxetex,ifluatex}
 \usepackage[utf8]{inputenc}
-\usepackage{fixltx2e}
-\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
-\IfFileExists{microtype.sty}{%
-\usepackage{microtype}
-\UseMicrotypeSet[protrusion]{basicmath}
-}{}
 \usepackage{hyperref}
-\hypersetup{unicode=true,
-            pdftitle={Solving Counting Constraints on First Order Formulas in SMT},
-            pdfborder={0 0 0},
-            breaklinks=true}
-\urlstyle{same}
-\setlength{\emergencystretch}{3em}  % prevent overfull lines
-\providecommand{\tightlist}{%
-  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
-\setcounter{secnumdepth}{5}
-\usepackage{tikz}
 \usepackage{bussproofs}
 \usepackage{syntax}
 \usepackage{amsthm}
 \usepackage{color}
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
+\usepackage{todonotes}
+
 \setcounter{secnumdepth}{3}
 
-\usepackage{todonotes}
+%%%%%%%%%% OPERATORS AND MACROS %%%%%%%%%%%%%
 
 \DeclareMathOperator{\qflia}{\mathbf{T}_\mathbb{LIA}}
 \DeclareMathOperator{\qfclia}{\mathbf{T}^\#_\mathbb{LIA}}
+
+\newcommand{\cterm}[1]{\sharp\left\lbrace\;k\;|\;#1\;\right\rbrace}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \title{Solving Counting Constraints on First Order Formulas in SMT}
 \date{August 28, 2016}
@@ -160,80 +148,101 @@ theory described in Figure \ref{formula}.
 \alt $\phi$ $\lor$ $\phi$
 \alt $\lnot$ $\phi$
 \alt <atoms> of $\qflia$
-\alt $c = \sharp\lbrace k \mid \phi \rbrace$
+\alt $c = \cterm{\phi}$
 \end{grammar}
 
 \caption{Formula syntax}
 \label{formula}
 \end{figure}
 
-Constraints of the form $c = \sharp\{ k\ |\ \psi \}$ are called
+Constraints of the form $c = \cterm{\phi}$ are called
 \emph{counting constraints} and denote the number of solutions for $k$
 that satisfy the formula $\phi$.\todo{Can $\phi$ include other
 counting constraints?} More formally, given a model $\mathcal{M}$ that
-assigns all variables other than $k$, the term $\sharp\{ k\ |\ \psi \}$
+assigns all variables other than $k$, the term $\cterm{\psi}$
 denotes the cardinality of the set $S \subseteq \mathbb{Z}$ such that
-$v \in S \iff \mathcal{M}^v_k \vDash \psi$. In order for the semantics
+$v \in S \iff \mathcal{M}^v_k \vDash \phi$. In order for the semantics
 of the counting terms to be well defined, we assume that all counting
 terms are over formulas that ensure $k$ is always bounded.
 
 \begin{example}
-The formula $c = \sharp\{k \mid 0 < k \le 10 \land 5 < k \le 10\}$ is
-satisfied in a model $c \mapsto 5$.
+The formula $c = \cterm{0 < k \le 10 \land 5 < k \le 10}$ is
+satisfied in a model that assignes $c \mapsto 5$.
 \end{example}
 
 \begin{example}
-The formula $c = \sharp\{k \mid 0 < k \le c + 1\} \land c > 0$ is
+The formula $c = \cterm{0 < k \le c + 1} \land c > 0$ is
 not satisfiable. This is because the formula is equivalent to the
 formula $c = c+1 \land c >0$ which is not satisfiable.
 \end{example}
 
 Example above illustrates that, in the theory $\qfclia$, formulas with
 counting constraints can be reduced to formulas in $\qflia$. But, in
-order to do so, in general many different cases need to be considered. 
+order to do so, in general many different cases need to be considered.
 
 \begin{example}
-
-Let  $F$ be the formula $c = \sharp\{x \mid 0 < x \le y \land 0 < x
-\le z\}$. In this case, $c$ can not be directly expressed with an
-arithmetic expression, as the symbolic value depends on whether $y <
-z$. However, with a disjunction on $y >z$, $F$ is also equivalent to a
-pure arithmetic formula $(y > z \implies c = y) \lor (y \le z \implies
-c = z)$.
-
+Let  $F$ be the formula
+\begin{align*}
+  c = \cterm{0 < k \le x \land 0 < k \le y}\enspace.
+\end{align*}
+In this case, the counting term can not be directly expressed with an
+arithmetic expression. This is because the value of the value of the
+counting term is depends on the relationship between the values of
+variables $x$ and $y$. In any model $\mathcal{M}$ where $x \le y$ is
+true the formula $F$ is equivalent to $c = x$, and in any model $M$
+where $x > y$ is true the formula $F$ is equivalent to $c = y$.
+However, we can ``split'' on the relationship between $x$ and $y$ to
+obtain a purely arithmetic formula equivalent to $F$
+\begin{align*}
+  (x \le y \implies c = x) \lor (x > y \implies c = y)\enspace.
+\end{align*}
 \end{example}
 
-Counting constraints provide a way to specify how many integers satisfy
-a given predicate. Thus, they generalize quantifiers over the
-integers. An existential
-quantifier can be transformed into a constraint involving a cardinality
-greater than 1, and a universal quantifier into a counting constraint
-composed of a cardinality equal to 0 (in this case, the predicate will
-be the negation of the formula).
+Counting constraints provide a way to specify how many integers
+satisfy a given predicate and can, in a bounded setting, be used to
+express quantifiers over the integers. An existential quantifier can
+be transformed into a constraint involving a cardinality greater than
+1, and a universal quantifier into a counting constraint composed of a
+cardinality equal to 0, i.e.\footnote{Can we express $\forall k . 0 \le k \le 10$? The
+proposed reduction turns this into $\cterm{k < 0 \lor k > 10} = 0$
+in which the counting is not bounded and can evaluate to $+\infty$.}\todo{Check footnote!}
+\begin{align*}
+  \exists k . \phi &\;\;\equiv\;\; \cterm{\phi} > 0 \enspace, &
+  \forall k . \phi &\;\;\equiv\;\; \cterm{\phi} = 0 \enspace.
+\end{align*}
 
-Dealing with quantifiers in SMT formula is known to be a hard problem.
-Some theories, such as arithmetic, support quantifier elimination \cite{cooper}, but
-quantifier elimination is expensive and is not available in every theory \cite{bradley2006s}. Even when quantifier elimination algorithms exist, simpler
-methods based on variable instantiation may work better in practice \cite{dutertre2015solving}.
+Reasoning with quantifiers in SMT is known to be a hard problem
+\cite{arithquantifiers}. Some theories, such as arithmetic, support
+quantifier elimination \cite{cooper}. But, the complexity of
+quantifier elimination is prohibitive for practical applications and
+may not be available for some theories of interest, such as the theory of
+arrays \cite{bradley2006s}. Even when a theory admits quantifier
+elimination,  simpler methods based on variable instantiation may work
+better in practice \cite{dutertre2015solving}.
 
-That's why we look at a restricted subset of formulas built on the syntax of Figure \ref{formula}:
-there is no nested counting constraints. Furthermore, to keep the algorithm simple, if the
-quantified variable is $x$, every atom of the counting constraint where $x$ appears must be of the form $x < t$ or $t \le x$,
-where $t$ is an arithmetic term where $x$ does not appear. Without loss of generality, we only
-consider the case where $t$  is an arithmetic variable (a new variable equal to an arbitrary term
-can always be added to the formula). Atoms such as $2x < y$ are not handled by our algorithm.
-Handling them can be done using divisibility constraints, but this cause extra complexity.
+In our context, we are looking at a restricted fragment of formulas
+built on the syntax of Figure \ref{formula}. In this fragment there is
+no nested counting constraints or quantifier alternations, the main
+sources of complexity in quantified reasoning. This allows us to
+consider only atoms that are \emph{counting-univariate}, i.e. each
+atom within the counting constraint contains a single occurrence of
+the counting variable. Further, we only consider the case where the
+only coefficients with the counting variable are $\pm 1$, i.e. atoms
+all atoms are of the form $k < t$ or $k \geq t$, and atoms such as $2k <
+x$ are not allowed. This is restriction is not fundamental as the
+presented algorithms can be extended to cover them by relying on
+divisibility constraints.
 
-It can be shown that every formula in this class is equivalent to a formula of the form:
+It can be shown that every formula in this class is equivalent to a
+formula of the form
 \begin{equation}
-F(c_1, \ldots, c_n, \mathbf{y}) \land \bigwedge\limits_{i=1}^n c_i = \sharp\{ x \ |\ \psi_i(x, c_1, \ldots, c_n,
-\mathbf{y})\}
+F(\vec{x}, \vec{c}) \land \bigwedge_i c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}\enspace,
 \label{maingoal}
 \end{equation}
-where no counting constraints appear in $F$.
+where no counting constraints appear in $F$. In the following, we
+assume all formulas are in above form.
 
 \subsection{Decision Procedure}
-
 
 We now present an algorithm that decides whether a formula of the form
 \ref{maingoal} is satisfiable and if so produces a model.
