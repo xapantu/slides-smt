@@ -41,11 +41,13 @@ of the counting terms to be well defined, we assume that all counting
 terms are over formulas that ensure $k$ is always bounded.
 
 \begin{example}
+\label{ex:semantics}
 The formula $c = \cterm{0 < k \le 10 \land 5 < k \le 10}$ is
 satisfied in a model that assignes $c \mapsto 5$.
 \end{example}
 
 \begin{example}
+\label{ex:simple}
 The formula $c = \cterm{0 < k \le c + 1} \land c > 0$ is
 not satisfiable. This is because the formula is equivalent to the
 formula $c = c+1 \land c >0$ which is not satisfiable.
@@ -56,6 +58,7 @@ counting constraints can be reduced to formulas in $\qflia$. But, in
 order to do so, in general many different cases need to be considered.
 
 \begin{example}
+\label{ex:disjunction}
 Let  $F$ be the formula
 \begin{align*}
   c = \cterm{0 < k \le x \land 0 < k \le y}\enspace.
@@ -124,24 +127,40 @@ We now present an algorithm that decides whether a formula of the form
 
 \subsubsection{Overview}
 
-We assume that we have an SMT solver $\mathcal{S}$ that decides satisfiability
-of formulas in theories $\mathbf{T}_\mathcal{Z}, \mathbf{T}_{eq}, \mathbf{T}_1, \ldots,
-\mathbf{T}_n$ (i.e. formulas
-without counting constraints). We also assume that $\mathcal{S}$ can produce
-models of satisfiable formulas.
+We assume that we have an SMT solver \solver that can decide
+satisfiability of formulas in theory $\qflia$, i.e. formulas without
+counting constraints, and that it can produce models in the case when
+the formula being checked is satisfiable. In addition, we assume that
+solver \solver can be used in an incremental fashion, i.e. that new
+assertions can be freely added and the it supports the \push and \pop
+commands.\footnote{These are are standard featrues that all major SMT
+solvers support.}
 
-Our decision procedure translates every counting constraints to arithmetic expressions. To do that, it needs
-to make additional assumptions (example 3). We use models constructed by the SMT solver to enumerate every possible set of
-assumptions compatible with formula $F$.
+The decision procedure we describe will incrementally translate every
+counting constraint to an equivalent arithmetic formula. In order to
+do that, as in Example \ref{ex:disjunction}, the procedure will
+introduce additional assumptions on the relationship between various
+terms contained in the constraint. These assumptions, along with the
+arithmetic formula that we incrementally construct, will, in the
+limit, amount to a full translation of the counting constraint. But,
+in practice, in order to find a model or show it's unsatisfiability,
+one often needs to construct only a partial representation of the
+counting constraint. This incremental model-drive construction is key
+to practical effectiveness and will be guided by the models obtained
+from the SMT solver, which are used to enumerate the sets of relevant
+assumptions.
 
-Our procedure works as follows: first, the formula without the counting constraints is forwarded to
-the solver we already have. If it is \texttt{unsat}, then the formula with the counting constraints is also
-\texttt{unsat}. Otherwise, we get a model and we compute a symbolic arithmetic expression for every counting
-constraints, under the assumptions that hold in the model. Then, both the assumptions and the value
-of the counting constraints are added as new clauses to the solver. If $\mathcal{S}$ answers \texttt{sat}, then we
-have a model which satisfies the formula with the counting constraints. Otherwise, we restore the
-solver to its previous state, we assert the negation of the assumptions and we
-retry the procedure.
+Our procedure works as follows: first, the formula without the
+counting constraints is forwarded to the solver we already have. If it
+is \texttt{unsat}, then the formula with the counting constraints is
+also \texttt{unsat}. Otherwise, we get a model and we compute a
+symbolic arithmetic expression for every counting constraints, under
+the assumptions that hold in the model. Then, both the assumptions and
+the value of the counting constraints are added as new clauses to the
+solver. If $\mathcal{S}$ answers \texttt{sat}, then we have a model
+which satisfies the formula with the counting constraints. Otherwise,
+we restore the solver to its previous state, we assert the negation of
+the assumptions and we retry the procedure.
 
 A pseudo-code description is shown in algorithm \ref{arith}.
 
