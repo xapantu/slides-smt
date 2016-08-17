@@ -39,17 +39,19 @@ is specially important in modeling of fault-tolerant protocols. A
 typical example of counting constraints is an assumption of the form
 ``less than one third of the processes are faulty".
 
+\todo{Add example of a system and a property.}
+
 Several methods and tools have already been proposed to study
 parametric protocols. However, they are not particularly suited to
-check fault tolerant protocols. For instance, \textsc{Cubicle}
+check fault-tolerant protocols. For instance, \textsc{Cubicle}
 \cite{ConchonGKMZ12} is suited to study a class of parameterized
 protocols including cache coherence protocols, but is not equipped to
-deal with these counting constraints. On the other hand, recent
-developments of the MCMT framework \cite{AlbertiGP16} allow for
-counting constraints, but the proposed decision procedures are mostly
+deal with counting constraints. On the other hand, recent developments
+of the MCMT framework \cite{AlbertiGP16} allow for counting
+constraints. But, the proposed decision procedures are mostly
 theoretical and can not be integrated well into an invariant-discovery
-algorithm such as IC3 that requires features such as interpolation and
-generalization.
+algorithm like IC3 that requires advanced features such as
+interpolation and generalization.
 
 During my internship, I first implemented a decision procedure for
 counting constraints in arithmetic, and then extended it to counting

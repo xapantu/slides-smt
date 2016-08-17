@@ -24,27 +24,35 @@ Figure \ref{formula}.
 \alt $\phi$ $\lor$ $\phi$
 \alt $\lnot$ $\phi$
 \alt <atoms> of $\qflia$
-\alt $c = \cterm{\phi}$
+\alt $c = \bcterm{l}{u}{\phi}$
 \end{grammar}
 
 \caption{Formula syntax}
 \label{formula}
 \end{figure}
 
-Constraints of the form $c = \cterm{\phi}$ are called
-\emph{counting constraints} and denote the number of solutions for $k$
-that satisfy the formula $\phi$.\todo{Can $\phi$ include other
-counting constraints?} More formally, given a model $\mathcal{M}$ that
-assigns all variables other than $k$, the term $\cterm{\psi}$
-denotes the cardinality of the set $S \subseteq \mathbb{Z}$ such that
-$v \in S \iff \mathcal{M}^v_k \vDash \phi$. In order for the semantics
-of the counting terms to be well defined, we assume that all counting
-terms are over formulas that ensure $k$ is always bounded.
+We call the terms of the form $\bcterm{l}{u}{\phi}$ \emph{counting
+terms}, and formulas of the form $c = \bcterm{l}{u}{\phi}$
+\emph{counting constraints}. Counting terms denote the number of
+solutions for $k$ in the interval $[l, u]$ that satisfy the formula
+$\phi$\todo{Can $\phi$ include other counting constraints?}. More
+formally, given a model $\mathcal{M}$ that assigns all variables in
+$l, u, \phi$, the term $\bcterm{l}{u}{\psi}$ denotes the cardinality of
+the set $S \subseteq \mathbb{Z}$ such that
+\begin{align*}
+  v \in S \iff v \in [l, u] \land \mathcal{M}^v_k \vDash \phi\enspace.
+\end{align*}
+Since all terms of the counting term, other than $k$, evaluate in
+$\mathcal{M}$, the possible range of values that $k$ can take is
+always bounded, ensuring that semantics are well defined.
 
 \begin{example}
 \label{ex:semantics}
-The formula $c = \cterm{0 < k \le 10 \land 5 < k \le 10}$ is
-satisfied in a model that assignes $c \mapsto 5$.
+Consider the formula
+\begin{align*}
+  c = \bcterm{0}{10}{5 < k \le 10}\enspace.
+\end{align*}
+This formula is satisfied in a model that assignes $c \mapsto 5$.
 \end{example}
 
 \begin{example}
