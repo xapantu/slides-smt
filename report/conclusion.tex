@@ -5,7 +5,14 @@ related work
 optimization stuff
 
 In \cite{AlbertiGP16, schweikardt}, there is already a way to solve
-those formula. However, while they definitively explain that the problem
+formulas with counting constraints. However, while they definitively explain that the problem
 is decidable and why, they heavily rely on quantifier elimination and
 thus may not be very practical nor easily integrated in modern SMT
-solvers.
+solvers. I tried to compare the method of \cite{AlbertiGP16} and my solver,
+unfortunately their implementation is not complete and most of our examples
+cannot be checked by their tool.
+
+The tool we developed could be improved. Divisibility constraints would be
+useful to have a tool that supports all the Presburger arithmetic, even if we
+did not find it useful for model checking related problems. Integration inside
+an SMT solver could also provide a significant performance overhaul.

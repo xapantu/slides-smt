@@ -90,12 +90,12 @@ satisfy a given predicate and can, in a bounded setting, be used to
 express quantifiers over the integers. An existential quantifier can
 be transformed into a constraint involving a cardinality greater than
 1, and a universal quantifier into a counting constraint composed of a
-cardinality equal to 0, i.e.\footnote{Can we express $\forall k . 0 \le k \le 10$? The
-proposed reduction turns this into $\cterm{k < 0 \lor k > 10} = 0$
-in which the counting is not bounded and can evaluate to $+\infty$.}\todo{Check footnote!}
+cardinality equal to 0, i.e.\footnote{A more simplistic reduction would be
+  $\exists k . \phi \equiv \cterm{\phi} > 0$, but as there is no guarantee that $k$ is bounded, problems arise with formulas such as $\exists k . k > 0$, where $\cterm{k>0} > 0$ is then the comparison of an infinite number and 0.}
 \begin{align*}
-  \exists k . \phi &\;\;\equiv\;\; \cterm{\phi} > 0 \enspace, &
-  \forall k . \phi &\;\;\equiv\;\; \cterm{\phi} = 0 \enspace.
+  \exists k . \phi &\;\;\equiv\;\; \cterm{p < k < q \land \phi} > 0 \enspace, \text{\ where $p$ and $q$ are two fresh arithmetic variables}\\
+  \forall k . \phi &\;\;\equiv\;\; b \text{\ with the additional constraints\ } \lnot b \implies \cterm{p < k < q \land \lnot \phi} > 0 \enspace. \\
+  b \implies \cterm{b \land \implies \lnot \phi} = 0 \enspace. \\
 \end{align*}
 
 Reasoning with quantifiers in SMT is known to be a hard problem
@@ -141,8 +141,8 @@ satisfiability of formulas in theory $\qflia$, i.e. formulas without
 counting constraints, and that it can produce models in the case when
 the formula being checked is satisfiable. In addition, we assume that
 solver \solver can be used in an incremental fashion, i.e. that new
-assertions can be freely added and the it supports the \push and \pop
-commands.\footnote{These are are standard featrues that all major SMT
+assertions can be freely added (the \assert command) and that it supports the \push and \pop
+commands.\footnote{These are all standard features that all major SMT
 solvers support.}
 
 The decision procedure we describe will incrementally translate every
@@ -166,7 +166,7 @@ also \texttt{unsat}. Otherwise, we get a model and we compute a
 symbolic arithmetic expression for every counting constraints, under
 the assumptions that hold in the model. Then, both the assumptions and
 the value of the counting constraints are added as new clauses to the
-solver. If $\mathcal{S}$ answers \texttt{sat}, then we have a model
+solver. If \solver answers \texttt{sat}, then we have a model
 which satisfies the formula with the counting constraints. Otherwise,
 we restore the solver to its previous state, we assert the negation of
 the assumptions and we retry the procedure.
@@ -202,15 +202,6 @@ A pseudo-code description is shown in algorithm \ref{arith}.
 \end{algorithmic}
 \label{arith}
 \end{algorithm}
-
-We assume that our SMT solver $\mathcal{S}$ supports the following operations (besides the variable definitions):
-\texttt{assert} (adds a formula to the current context),
-\texttt{check-sat} (checks the satisfiability of the conjunction of the
-formulas in the current context), \texttt{push} (creates a new context
-with the current context formula), \texttt{pop} (restores the context to
-the last \texttt{push} call). These operations are supported by most
-modern SMT solvers which can work in an incremental way.
-
 
 \begin{example}
 \ \newline Let $F \equiv N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \land c = \sharp\{ x \mid 0 \le x < N \land (x < z \lor x < u) \}$.
@@ -248,8 +239,8 @@ some assumptions.
 
 \begin{definition}[Assumptions]
 
-We call assumptions a set $A$ whose elements are literals of the theories
-$\mathbf{T}_i$. In the context of a first order formula, writing $A$
+We call assumptions a set $A$ whose elements are literals of the theory
+$\qflia$. In the context of a first order formula, writing $A$
 means the conjunctions of the atoms of $A$.
 
 \label{assumptions}
@@ -314,7 +305,7 @@ $\{[y, +\infty)\}$ with no assumptions.
 
 If the formula is $x < y$, then the arithmetic domain is $\{(-\infty, y)\}$, with no assumptions.
 
-If the formula is a literal $l$ of a theory $\mathbf{T}_i$, then we look at the value of $l$ in
+If the formula is a literal $l$ of the theory $\qflia$, then we look at the value of $l$ in
 $\mathcal{M}$. If it is \texttt{true}, then $S = \{(-\infty, +\infty)\}$ and the assumptions are
 $\{l\}$. If it is \texttt{false}, then $S = \emptyset$ and the assumptions are $\{\lnot l\}$.
 

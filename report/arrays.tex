@@ -2,10 +2,10 @@
 % !TEX program = pdflatex
 
 In this section, we describe an extension of the previous algorithm to
-deal with arrays. The syntax for $k$ arrays $a_1, \ldots, a_k$ is
+deal with arrays. The syntax for $K$ arrays $a_1, \ldots, a_K$ is
 described in Figure \ref{syntaxarray}. It is important to note that
 arrays are only accessed on the quantified variable, and not on a
-general term built on this variable (such as $x + 1$, or a nested
+general term built on this variable (such as $k + 1$, or a nested
 array read). Removing this syntax restriction leads to an undecidable
 array theory fragment, as stated in
 \cite{bradley2006s}, even for small additions to the
@@ -21,8 +21,8 @@ that is, atoms like $a_i[x] = x$ are forbidden.
 <formulas> $\phi$ ::= $\phi$ $\land$ $\phi$
 \alt $\phi$ $\lor$ $\phi$
 \alt $\lnot$ $\phi$
-\alt $\langle atoms\rangle$ of $\mathbf{T}_i$
-\alt $c = \sharp\{ x \mid y\ \text{\textless}\ x \le z \land \phi(x, a_1[x], \ldots, a_k[x]) \}$ where $c, y, z$ are variables of $\mathbf{T}_\mathbb{Z}$
+\alt $\langle atoms\rangle$ of $\qflia$
+\alt $c = \cterm{\phi(k, a_1[k], \ldots, a_K[k]}$
 
 \end{grammar}
 \caption{Array Extension}
@@ -31,7 +31,7 @@ that is, atoms like $a_i[x] = x$ are forbidden.
 
 
 An array has a size, which is an arithmetic variable of the theory
-$\mathbf{T}_\mathbb{Z}$. This is similar to the model checker \textsc{Arca}
+$\qflia$. This is similar to the model checker \textsc{Arca}
 \cite{AlbertiGP16} (with the subtle difference that
 different arrays can have different size) but unlike \textsc{Cubicle}
 \cite{ConchonGKMZ12}, whose fragment does not
@@ -39,18 +39,21 @@ provide a syntax to express an array length. In the context of fault
 tolerant systems, this is an important detail, as we typically want to
 specify that at most one third of the components are faulty.
 
-The elements of the arrays can be of any sort defined in a theory $\mathbf{T}_i$.
+The elements of the arrays can be of any sort, but as we are working with
+$\qflia$, we assume they belong to $\mathbb{Z}$\footnote{But the algorithm does
+not rely on this, so it does not change anything if we use a richer theory with
+more sorts.}
 
 As soon as there is an array term in the counting constraints, the
 cardinality can no longer be infinite, as the array can only be accessed
-on a finite interval, that is, term $a[x]$ implicitly implies that $0 \le x < N$ if $a$ is an array of size $N$.
+on a finite interval, that is, term $a[k]$ implicitly implies that $0 \le k < N$ if $a$ is an array of size $N$.
 
 It may be interesting to have array reads outside of the counting
 constraints. However, they can be rewritten as counting constraints, as in
 \cite{bradley2006s} or
 \cite{AlbertiGP16}: $a[v]$ can be replaced by a new variable $y$ with the additional constraint:
 \begin{equation}
-\sharp\{x\mid x = v \land a[x] = y\} = 1
+\sharp\{k\mid k = v \land a[k] = y\} = 1
 \end{equation}
 
 In the implementation section, we explain
