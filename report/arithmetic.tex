@@ -116,12 +116,12 @@ It can be shown that every formula $F$ in this class is equivalent to a
 formula of the form
 \begin{equation}
 \label{maingoal}
-F(\vec{x}, \vec{c}) \land \bigwedge_i c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}\enspace,
+G(\vec{x}, \vec{c}) \land \bigwedge_i c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}\enspace,
 \end{equation}
 where no counting constraints appear in $A$, and all the formulas $\phi$
 make sure that $k$ is always bounded. In the following, we assume all
 formulas are in above form. When needed, we will denote with $F_\lia$
-the arithmetic-only part of $F$, i.e. $F_\lia = A$.
+the arithmetic-only part of $F$, i.e. $F_\lia = G$.
 
 \subsection{Decision Procedure}
 
@@ -171,15 +171,21 @@ procedure is shown in Algorithm \ref{arith}.
 \caption{Satisfiability of arithmetic formula $F$ with counting constraints.}\label{arith}
 \begin{algorithmic}[1]
 \Procedure{\checkcsat}{F}
-\Require $F \equiv A(\vec{x}, \vec{c}) \land \bigwedge_{i=1}^n c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}$.
-\State $\assert(A)$
+\Require $F \equiv G(\vec{x}, \vec{c}) \land \bigwedge_{i=1}^n c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}$.
+\State $\assert(G)$
 \While{$\mathcal{M} = \checksat()$}
     \LineComment Interpret constraints in $\mathcal{M}$ and collect assumptions.
     \State $\push()$
     \ForAll{ $i \in [1..n]$}
-        \State $\langle A_i, S_i \rangle \gets \interpret(\mathcal{M}, c_i, \phi_i)$
+        \LineComment Compute assumptions and domains for $i$-th constraint
+        \State $\langle A_i, D_i \rangle \gets \interpret(\mathcal{M}, c_i, \phi_i)$
         \State $\assert(A_i)$
-        \State $\assert(c_i = \sum_{[a, b] \in S_i} b - a)$
+        \State $\assert(c_i = \sum_{[a, b] \in D_i} b - a)$
+        \If{$S_i$ is infinite}
+			\State $\pop()$
+            \State \Call{assert}{$\lnot A_i$}
+            \State \Call{continue}{}
+        \EndIf
     \EndFor
     \LineComment Check if the assumptions and counting constraints are consistent.
     \If {$\mathcal{M}_\sharp = \checksat()$}
@@ -225,8 +231,8 @@ For this formula, the algorithm works as follows:
 
 \subsubsection{Constraints Interpretation}
 
-In this section, we explain how a set $\sharp\{x\mid\phi(x)\}$ can be symbolically computed under
-some assumptions.
+In this section, we explain how a set $\sharp\{x\mid\phi(x)\}$ can be
+symbolically computed under some assumptions.
 
 \begin{definition}[Assumptions]
 
