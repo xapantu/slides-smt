@@ -9,10 +9,11 @@ constraints over these variables. A model $\mathcal{M}$ in $\qflia$ is
 an assignment of variable to values in $\mathbb{Z}$. Given a model
 $\mathcal{M}$, we can construct a new model where we assign a variable
 $x$ to a value $v$ and the rest of the assignment unmodified, which we
-denote with $\mathcal{M}^v_x$. As usual, when a formula $\phi$
-evaluates to true in the model $\mathcal{M}$, we say that $\phi$ is
-satisfied in $\mathcal{M}$ and denote this with $\mathcal{M} \vDash
-\phi$.
+denote with $\mathcal{M}^v_x$. We denote the value of any term $t$ in
+the model $\mathcal{M}$ with $t^\mathcal{M}$. As usual, when a formula
+$\phi$ evaluates to true in the model $\mathcal{M}$, we say that
+$\phi$ is satisfied in $\mathcal{M}$ and denote this with $\mathcal{M}
+\vDash \phi$.
 
 We extend the usual language of $\qflia$ with counting constraints and
 call this theory $\qfclia$, with formulas in this theory described in
@@ -37,13 +38,13 @@ terms}, and formulas of the form $c = \bcterm{l}{u}{\phi}$
 solutions for $k$ in the interval $[l, u]$ that satisfy the formula
 $\phi$\todo{Can $\phi$ include other counting constraints?}. More
 formally, given a model $\mathcal{M}$ that assigns all variables in
-$l, u, \phi$, the term $\bcterm{l}{u}{\psi}$ denotes the cardinality of
-the set $S \subseteq \mathbb{Z}$ such that
+$l, u, \phi$, the term $\bcterm{l}{u}{\psi}$ evaluates to
 \begin{align*}
-  v \in S \iff v \in [l, u] \land \mathcal{M}^v_k \vDash \phi\enspace.
+  \bcterm{l}{u}{\psi}^\mathcal{M} = |S|\enspace, &&
+  \text{ where } S = \left\lbrace v \in [l^\mathcal{M}, u^\mathcal{M}] \;|\; \mathcal{M}^v_k \vDash \phi \right\rbrace\enspace.
 \end{align*}
 Since all terms of the counting term, other than $k$, evaluate in
-$\mathcal{M}$, the possible range of values that $k$ can take is
+$\mathcal{M}$, the possible range of values that $v$ (and $k$) can take is
 always bounded, ensuring that semantics are well defined.
 
 \begin{example}
@@ -52,19 +53,35 @@ Consider the formula
 \begin{align*}
   c = \bcterm{0}{10}{5 < k \le 10}\enspace.
 \end{align*}
-This formula is satisfied in a model that assignes $c \mapsto 5$.
+This formula is satisfied in a model $\mathcal{M}$ that assignes $c \mapsto 5$. It is
+easy to see that in $\mathcal{M}$ the counting term evaluates to
+\begin{align*}
+  \bcterm{0}{10}{5 < k \le 10}^\mathcal{M} = |S| = 5\enspace, &&
+  \text{ where } S = [6, 10]\enspace.
+\end{align*}
 \end{example}
 
 \begin{example}
 \label{ex:simple}
-The formula $c = \cterm{0 < k \le c + 1} \land c > 0$ is
-not satisfiable. This is because the formula is equivalent to the
-formula $c = c+1 \land c >0$ which is not satisfiable.
+The following formula
+\begin{align*}
+  c = \cterm{0 \le k \le c} \land (c > 0)
+\end{align*}
+is not satisfiable. In order for the formula to be satisfiable, the
+the satisfying model $\mathcal{M}$ has to assign $c$ to a value
+$c^\mathcal{M} > 0$. In such a model the counting term then evaluates to
+\begin{align*}
+  \cterm{0 \le k \le c}^\mathcal{M} = c^\mathcal{M} + 1\enspace,
+\end{align*}
+and the counting constraint is therefore must be false. Moreover it
+is clear that the formula is equivalent to a purely arithmetic
+formula $(c=c+1) \land (c>0)$, which is not satisfiable in $\qflia$.
 \end{example}
 
 Example above illustrates that, in the theory $\qfclia$, formulas with
-counting constraints can be reduced to formulas in $\qflia$. But, in
-order to do so, in general many different cases need to be considered.
+counting constraints can be reduced to formulas in $\qflia$. This is
+true due to $\qflia$ admitting quantifier elimination \cite{schweikardt}.
+But, obtaining a full reduction is general is not a simple as above.
 
 \begin{example}
 \label{ex:disjunction}
@@ -72,14 +89,17 @@ Let  $F$ be the formula
 \begin{align*}
   c = \cterm{0 < k \le x \land 0 < k \le y}\enspace.
 \end{align*}
-In this case, the counting term can not be directly expressed with an
-arithmetic expression. This is because the value of the value of the
-counting term is depends on the relationship between the values of
-variables $x$ and $y$. In any model $\mathcal{M}$ where $x \le y$ is
-true the formula $F$ is equivalent to $c = x$, and in any model $M$
-where $x > y$ is true the formula $F$ is equivalent to $c = y$.
-However, we can ``split'' on the relationship between $x$ and $y$ to
-obtain a purely arithmetic formula equivalent to $F$
+In this case, the counting term can not be directly expressed with a
+single arithmetic term. This is because the value of the counting term
+in a model $\mathcal{M}$ depends on the relationship between the values
+of variables $x$ and $y$:
+\begin{itemize}
+  \item if $x^\mathcal{M} \le y^\mathcal{M}$, then $\cterm{0 < k \le x \land 0 < k \le y}^\mathcal{M} = x^\mathcal{M}$;
+  \item if $x^\mathcal{M} > y^\mathcal{M}$, then $\cterm{0 < k \le x \land 0 < k \le y}^\mathcal{M} = y^\mathcal{M}$.
+\end{itemize}
+But, these assumptions on the relationship between $x$ and $y$ can
+be used as symbolic assumption to obtain an equicalent arithmetic
+formula
 \begin{align*}
   (x \le y \implies c = x) \lor (x > y \implies c = y)\enspace.
 \end{align*}
@@ -90,12 +110,10 @@ satisfy a given predicate and can, in a bounded setting, be used to
 express quantifiers over the integers. An existential quantifier can
 be transformed into a constraint involving a cardinality greater than
 1, and a universal quantifier into a counting constraint composed of a
-cardinality equal to 0, i.e.\footnote{A more simplistic reduction would be
-  $\exists k . \phi \equiv \cterm{\phi} > 0$, but as there is no guarantee that $k$ is bounded, problems arise with formulas such as $\exists k . k > 0$, where $\cterm{k>0} > 0$ is then the comparison of an infinite number and 0.}
+cardinality equal to 0, i.e.
 \begin{align*}
-  \exists k . \phi &\;\;\equiv\;\; \cterm{p < k < q \land \phi} > 0 \enspace, \text{\ where $p$ and $q$ are two fresh arithmetic variables}\\
-  \forall k . \phi &\;\;\equiv\;\; b \text{\ with the additional constraints\ } \lnot b \implies \cterm{p < k < q \land \lnot \phi} > 0 \enspace. \\
-  b \implies \cterm{b \land \implies \lnot \phi} = 0 \enspace. \\
+  \exists k \in [l, u]\;.\; \phi &\;\;\equiv\;\; \bcterm{l}{u}{\phi} > 0 \enspace,\\
+  \forall k \in [l, u]\;.\; \phi &\;\;\equiv\;\; \bcterm{l}{u}{\neg \phi} = 0 \enspace.
 \end{align*}
 
 Reasoning with quantifiers in SMT is known to be a hard problem
@@ -123,8 +141,8 @@ divisibility constraints.
 It can be shown that every formula in this class is equivalent to a
 formula of the form
 \begin{equation}
-F(\vec{x}, \vec{c}) \land \bigwedge_i c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}\enspace,
 \label{maingoal}
+F(\vec{x}, \vec{c}) \land \bigwedge_i c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}\enspace,
 \end{equation}
 where no counting constraints appear in $F$. In the following, we
 assume all formulas are in above form.
