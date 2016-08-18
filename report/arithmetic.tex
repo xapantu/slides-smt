@@ -138,14 +138,16 @@ x$ are not allowed. This is restriction is not fundamental as the
 presented algorithms can be extended to cover them by relying on
 divisibility constraints.
 
-It can be shown that every formula in this class is equivalent to a
+It can be shown that every formula $F$ in this class is equivalent to a
 formula of the form
 \begin{equation}
 \label{maingoal}
-F(\vec{x}, \vec{c}) \land \bigwedge_i c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}\enspace,
+A(\vec{x}, \vec{c}) \land \bigwedge_i c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}\enspace,
 \end{equation}
-where no counting constraints appear in $F$. In the following, we
-assume all formulas are in above form.
+where no counting constraints appear in $A$, and all the formulas $\phi$
+make sure that $k$ is always bounded. In the following, we assume all
+formulas are in above form. When needed, we will denote with $F_\lia$
+the arithmetic-only part of $F$, i.e. $F_\lia = A$.
 
 \subsection{Decision Procedure}
 
@@ -159,9 +161,9 @@ satisfiability of formulas in theory $\qflia$, i.e. formulas without
 counting constraints, and that it can produce models in the case when
 the formula being checked is satisfiable. In addition, we assume that
 solver \solver can be used in an incremental fashion, i.e. that new
-assertions can be freely added (the \assert command) and that it supports the \push and \pop
-commands.\footnote{These are all standard features that all major SMT
-solvers support.}
+assertions can be freely added (the \assert command) and that it
+supports the \push and \pop commands.\footnote{These are all standard
+features that all major SMT solvers support.}
 
 The decision procedure we describe will incrementally translate every
 counting constraint to an equivalent arithmetic formula. In order to
@@ -170,53 +172,50 @@ introduce additional assumptions on the relationship between various
 terms contained in the constraint. These assumptions, along with the
 arithmetic formula that we incrementally construct, will, in the
 limit, amount to a full translation of the counting constraint. But,
-in practice, in order to find a model or show it's unsatisfiability,
+in practice, in order to find a model, or show it's unsatisfiability,
 one often needs to construct only a partial representation of the
-counting constraint. This incremental model-drive construction is key
+counting constraint. This incremental model-driven construction is key
 to practical effectiveness and will be guided by the models obtained
 from the SMT solver, which are used to enumerate the sets of relevant
 assumptions.
 
-Our procedure works as follows: first, the formula without the
-counting constraints is forwarded to the solver we already have. If it
-is \texttt{unsat}, then the formula with the counting constraints is
-also \texttt{unsat}. Otherwise, we get a model and we compute a
-symbolic arithmetic expression for every counting constraints, under
-the assumptions that hold in the model. Then, both the assumptions and
-the value of the counting constraints are added as new clauses to the
-solver. If \solver answers \texttt{sat}, then we have a model
-which satisfies the formula with the counting constraints. Otherwise,
-we restore the solver to its previous state, we assert the negation of
-the assumptions and we retry the procedure.
-
-A pseudo-code description is shown in algorithm \ref{arith}.
+Our procedure works as follows. First, the formula without the
+counting constraints is asserted to the solver \solver. If it is
+\unsat, then the formula with the counting constraints is also
+\sat. Otherwise, we get a model $\mathcal{M}$, and we
+compute a symbolic arithmetic expression for every counting term,
+under the assumptions that hold in the model. Then, both the
+assumptions and the value of the counting constraints are added as new
+assertions to the solver. If \solver answers \texttt{sat}, then we
+have a correct model which satisfies the formula, including the
+counting constraints. Otherwise, we restore the solver to its previous
+state, and assert the negation of the assumptions to eliminate the
+model $\mathcal{M}$, and retry. Pseudo-code description of the
+procedure is shown in Algorithm \ref{arith}.
 
 \begin{algorithm}[h]
-\caption{Satisfiability of arithmetic formula with counting constraints}\label{arith}
+\caption{Satisfiability of arithmetic formula $F$ with counting constraints.}\label{arith}
 \begin{algorithmic}[1]
-\State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
-\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
-    \State \Call{push}{\ }
-    \State $A \gets \emptyset$
-    \ForAll{ $i$ in $[1..n]$}
-        \State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
-        $\mathcal{M}$}
-        \State $A \gets A \cup A_i$
-        \If{$S_i$ is infinite}
-            \State \Call{assert}{$\lnot A$}
-            \State \Call{continue}{}
-        \EndIf
+\Procedure{\checkcsat}{F}
+\Require $F \equiv A(\vec{x}, \vec{c}) \land \bigwedge_{i=1}^n c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}$.
+\State $\assert(A)$
+\While{$\mathcal{M} = \checksat()$}
+    \LineComment Interpret constraints in $\mathcal{M}$ and collect assumptions.
+    \State $\push()$
+    \ForAll{ $i \in [1..n]$}
+        \State $\langle A_i, S_i \rangle \gets \interpret(\mathcal{M}, c_i, \phi_i)$
+        \State $\assert(A_i)$
+        \State $\assert(c_i = \sum_{[a, b] \in S_i} b - a)$
     \EndFor
-    \State \Call{assert}{$A$}
-    \State \textsc{assert}$\left(\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} b - a\right)$
-    \If {\Call{check-sat}{\ } }
-        \State \Call{pop}{\ }
-        \State \Return{sat}
+    \LineComment Check if the assumptions and counting constraints are consistent.
+    \If {$\mathcal{M}_\sharp = \checksat()$}
+        \State \Return{$\langle \sat, \mathcal{M}_\sharp \rangle$}
     \EndIf
-    \State \Call{pop}{\ }
-    \State \Call{assert}{$\lnot A$}
+    \State $\pop()$
+    \State $\assert(\lnot A_1 \vee \ldots \vee \lnot A_n)$
 \EndWhile
-\State \Return{unsat}
+\State \Return{\unsat}
+\EndProcedure
 \end{algorithmic}
 \label{arith}
 \end{algorithm}
