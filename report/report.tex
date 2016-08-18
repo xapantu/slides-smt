@@ -13,17 +13,27 @@
 
 \setcounter{secnumdepth}{3}
 
+\algnewcommand{\LineComment}[1]{\State \(\triangleright\) #1}
+
 %%%%%%%%%% OPERATORS AND MACROS %%%%%%%%%%%%%
 
-\DeclareMathOperator{\qflia}{\mathbf{T}_\mathbb{LIA}}
-\DeclareMathOperator{\qfclia}{\mathbf{T}^\#_\mathbb{LIA}}
+\newcommand{\lia}{\mathbb{LIA}}
+
+\DeclareMathOperator{\qflia}{\mathbf{T}_\lia}
+\DeclareMathOperator{\qfclia}{\mathbf{T}^\#_\lia}
 
 \newcommand{\cterm}[1]{\sharp\left\lbrace\;k\;|\;#1\;\right\rbrace}
 \newcommand{\solver}{\text{\textsf{S}}\xspace}
 
+\newcommand{\checksat}{\textsc{check-sat}\xspace}
+\newcommand{\checkcsat}{\textsc{check-$\sharp$sat}\xspace}
 \newcommand{\push}{\textsc{push}\xspace}
 \newcommand{\pop}{\textsc{pop}\xspace}
 \newcommand{\assert}{\textsc{assert}\xspace}
+\newcommand{\interpret}{\textsc{interpret-constraint}\xspace}
+
+\newcommand{\sat}{\text{\texttt{sat}\xspace}}
+\newcommand{\unsat}{\text{\texttt{unsat}\xspace}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
