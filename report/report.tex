@@ -18,13 +18,15 @@
 
 %%%%%%%%%% OPERATORS AND MACROS %%%%%%%%%%%%%
 
+\newcommand{\dejan}[1]{\begin{quotation}\textcolor{red}{Dejan: #1}\end{quotation}}
+
 \newcommand{\lia}{\mathbb{LIA}}
 
 \DeclareMathOperator{\qflia}{\mathbf{T}_\lia}
 \DeclareMathOperator{\qfclia}{\mathbf{T}^\#_\lia}
 
-\newcommand{\cterm}[1]{\sharp\left\lbrace\;k\;|\;#1\;\right\rbrace}
-\newcommand{\bcterm}[3]{\sharp\left\lbrace\;k \in [#1, #2] \;|\;#3\;\right\rbrace}
+\newcommand{\cterm}[1]{\sharp\lbrace\;k\;|\;#1\;\rbrace}
+\newcommand{\bcterm}[3]{\sharp\lbrace\;k \in [#1, #2] \;|\;#3\;\rbrace}
 \newcommand{\solver}{\text{\textsf{S}}\xspace}
 
 \newcommand{\checksat}{\textsc{check-sat}\xspace}

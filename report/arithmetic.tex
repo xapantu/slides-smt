@@ -179,21 +179,7 @@ to practical effectiveness and will be guided by the models obtained
 from the SMT solver, which are used to enumerate the sets of relevant
 assumptions.
 
-Our procedure works as follows. First, the formula without the
-counting constraints is asserted to the solver \solver. If it is
-\unsat, then the formula with the counting constraints is also
-\sat. Otherwise, we get a model $\mathcal{M}$, and we
-compute a symbolic arithmetic expression for every counting term,
-under the assumptions that hold in the model. Then, both the
-assumptions and the value of the counting constraints are added as new
-assertions to the solver. If \solver answers \texttt{sat}, then we
-have a correct model which satisfies the formula, including the
-counting constraints. Otherwise, we restore the solver to its previous
-state, and assert the negation of the assumptions to eliminate the
-model $\mathcal{M}$, and retry. Pseudo-code description of the
-procedure is shown in Algorithm \ref{arith}.
-
-\begin{algorithm}[h]
+\begin{algorithm}
 \caption{Satisfiability of arithmetic formula $F$ with counting constraints.}\label{arith}
 \begin{algorithmic}[1]
 \Procedure{\checkcsat}{F}
@@ -221,11 +207,36 @@ procedure is shown in Algorithm \ref{arith}.
 \label{arith}
 \end{algorithm}
 
+Our procedure works as follows. First, the formula without the
+counting constraints is asserted to the solver \solver. If it is
+\unsat, then the formula with the counting constraints is also
+\sat. Otherwise, we get a model $\mathcal{M}$, and we
+compute a symbolic arithmetic expression for every counting term,
+under the assumptions that hold in the model. Then, both the
+assumptions and the value of the counting constraints are added as new
+assertions to the solver. If \solver answers \texttt{sat}, then we
+have a correct model which satisfies the formula, including the
+counting constraints. Otherwise, we restore the solver to its previous
+state, and assert the negation of the assumptions to eliminate the
+model $\mathcal{M}$, and retry. Pseudo-code description of the
+procedure is shown in Algorithm \ref{arith}.
+
 \begin{example}
-\ \newline Let $F \equiv N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \land c = \sharp\{ x \mid 0 \le x < N \land (x < z \lor x < u) \}$.
+
+Consider the following formula
+\begin{multline*}
+\overbrace{N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0}^G \land \\
+\land c = \cterm{\underbrace{0 \le k < N \land (k < z \lor k < u)}_\phi}\enspace.
+\end{multline*}
+
+\dejan{The formula seems overly complex. The example should illustrate
+the flow of the algorithm, with all cases covered, and illustrate how (and why)
+the assumptions are needed and computed. Currently it is just a trace of the
+algorithm which is not helpful for the reader.}
+
 For this formula, the algorithm works as follows:
 \begin{itemize}
-\item \textsc{assert}$\left(N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \right)$.
+\item $\assert(G)$.
 \item \textsc{push}$()$
 \begin{itemize}
 	\item First, get a model: $\mathcal{M} = \{ z \mapsto 10, N \mapsto 11, u \mapsto 0, c \mapsto 11\}$.
@@ -252,45 +263,53 @@ For this formula, the algorithm works as follows:
 
 \subsubsection{Constraints Interpretation}
 
-In this section, we explain how a set $\sharp\{x\mid\phi(x)\}$ can be
-symbolically computed under some assumptions.
+In this section, we explain how to compute the value of the term
+$\cterm{\phi}$ symbolically and collect the assumptions under which
+this value is correct.
+
+\dejan{The three definitions don't seem to be needed, just explain in
+a paragraph what is needed. Assumptions can be skipped, it's just a
+set of formulas. Symbolic intervals are important so these should be
+kept and explained. Also, no need to restrict the intervals bounds to
+variables and values -- they can be arbitrary arithmetic terms. The
+fact that your implementation uses variable is an implementation
+detail and a distraction in the presentation. As in the algorithm,
+I think it's better to use D for domains instead of S, it helps the
+reader do the association.}
 
 \begin{definition}[Assumptions]
-
+\label{assumptions}
 We call assumptions a set $A$ whose elements are literals of the theory
 $\qflia$. In the context of a first order formula, writing $A$
 means the conjunctions of the atoms of $A$.
-
-\label{assumptions}
-
 \end{definition}
 
-
 \begin{definition}[Symbolic Interval]
-
+\label{symbolic}
 A symbolic interval is a couple of values that are either arithmetic
 variables, constants or $\infty$. If $I = [a, b)$, $x \in I$ is
 defined as $x < b \land a \le x$. \newline~\newline
 It is finite if none of the bounds are infinite.
-
-\label{symbolic}
-
 \end{definition}
 
-
 \begin{definition}[Arithmetic Domain]
-
+\label{arithmetic}
 An arithmetic domain is a finite set of symbolic intervals (definition
 \ref{symbolic}). It is  associated to some assumptions
 (definition \ref{assumptions}) which make them disjoint and ensure that
 the lower bound of an interval is lower than the upper bound.
-
-\label{arithmetic}
-
 \end{definition}
 
 Let S be an arithmetic domain. We write $x \in S$ for
 $\left(\bigvee\limits_{I \in S} x \in I\right)$.
+
+\dejan{At this point there needs to be an example. Symbolic domains
+only make sense when the terms are evaluated. When you say $x \in S$,
+this doesn't mean anything. You can interpret $S$ in a domain, e.g.
+$S^\mathcal{M}$ and then say $x^\mathcal{M} \in S^\mathcal{M}$. The
+way you are using it, what you really mean is that $x \in S$ stands
+for $\bigwedge_i a_i \leq x < b_i$, and overloading the $\in$ is very
+confusing for the reader, specially because your $S$ is already a set.}
 
 Let $\psi_i$ be one of the formula of the counting constraints. We are going to give rules to compute $(S, A)$ such as
 $A \implies \forall x \left(\psi_i(x, \mathbf{y}) \iff x \in S\right)$. The goal is to express the
