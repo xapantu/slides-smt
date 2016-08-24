@@ -42,7 +42,7 @@ specify that at most one third of the components are faulty.
 The elements of the arrays can be of any sort, but as we are working with
 $\qflia$, we assume they belong to $\mathbb{Z}$\footnote{But the algorithm does
 not rely on this, so it would not change anything if we used a richer theory with
-more sorts.}
+more sorts.}.
 
 As soon as there is an array term in the counting constraints, the
 cardinality can no longer be infinite, as the array can only be accessed
@@ -82,7 +82,8 @@ algorithm.
 \caption{Satisfiability of a formula with arrays and counting constraints}
 \begin{algorithmic}[1]
 \Procedure{\checkcsat}{F}
-\Require $F \equiv G(\vec{x}, \vec{c}) \land \bigwedge_{i=1}^n c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}$.
+\Require $F \equiv G(\vec{x}, \vec{c}) \land \bigwedge_{i=1}^n c_i =
+\cterm{\phi_i(k, \vec{a}[k], \vec{x}, \vec{c})}$.
 \State $\assert(G)$
 \While{$\mathcal{M} = \checksat()$}
     \LineComment Interpret constraints in $\mathcal{M}$ and collect assumptions.

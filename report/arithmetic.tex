@@ -12,7 +12,8 @@ $x$ to a value $v$ and the rest of the assignment unmodified, which we
 denote with $\mathcal{M}^v_x$. As usual, when a formula $\phi$
 evaluates to true in the model $\mathcal{M}$, we say that $\phi$ is
 satisfied in $\mathcal{M}$ and denote this with $\mathcal{M} \vDash
-\phi$.
+\phi$. Given a term $t$ whose variables are defined in $\mathcal{M}$,
+$t^\mathcal{M} \in \mathbb{Z}$ is the value of the term in the model.
 
 We extend the usual language of $\qflia$ with counting constraints and
 call this theory $\qfclia$, with formulas in this theory described in
@@ -32,7 +33,7 @@ Figure \ref{formula}.
 \end{figure}
 
 We call the terms of the form $\cterm{\phi}$ \emph{counting
-terms}, and formulas of the form $c = \cterm{\phi}$
+terms}, and formulas of the form $c = \cterm{\phi}$
 \emph{counting constraints}. 
 Counting constraints denote the number of solutions for $k$
 that satisfy the formula $\phi$.
@@ -75,7 +76,7 @@ formula $(c=c+1) \land (c>0)$, which is not satisfiable in $\qflia$.
 Example above illustrates that, in the theory $\qfclia$, formulas with
 counting constraints can be reduced to formulas in $\qflia$. This is
 true due to $\qflia$ admitting quantifier elimination \cite{schweikardt}.
-But, obtaining a full reduction is general is not a simple as above.
+But, obtaining a full reduction is general is not as simple as above.
 
 \begin{example}
 \label{ex:disjunction}
@@ -172,7 +173,7 @@ introduce additional assumptions on the relationship between various
 terms contained in the constraint. These assumptions, along with the
 arithmetic formula that we incrementally construct, will, in the
 limit, amount to a full translation of the counting constraint. But,
-in practice, in order to find a model, or show it's unsatisfiability,
+in practice, in order to find a model, or show its unsatisfiability,
 one often needs to construct only a partial representation of the
 counting constraint. This incremental model-driven construction is key
 to practical effectiveness and will be guided by the models obtained
@@ -332,7 +333,7 @@ $\psi_i$.
 
 \paragraph{Base cases}
 
-If the formula is $y \le x$ where $y$ is an arithmetic variable, then the arithmetic domain is
+If the formula is $y \le x$ where $y$ is an arithmetic term, then the arithmetic domain is
 $\{[y, +\infty)\}$ with no assumptions.
 
 If the formula is $x < y$, then the arithmetic domain is $\{(-\infty, y)\}$, with no assumptions.
@@ -352,7 +353,7 @@ of $D'$.
 
 So, let $I = [a, b)$ and $J = [c, d)$ be two symbolic intervals. We want a new
 interval $K_{I, J} = [e, f)$ such as
-$A \cup A' \cup A_{S \sqcap S'} \implies \left(x \in I \land x \in J \iff x \in K_{I, J}\right)$.
+$A \cup A' \cup A_{D \sqcap D'} \implies \left(x \in I \land x \in J \iff x \in K_{I, J}\right)$.
 $A_{S \sqcap S'}$ is a set of additional assumptions that are added to make it possible to define
 the
 intersection. For instance, if the two intervals are $[0, x)$ and $[0, y)$, then $x < y$ or $y \le x$
@@ -360,19 +361,12 @@ must be added to claim that the intersection is either $[0, x)$ or $[0, y)$.
 
 To choose what are the assumptions needed to compute the intersection, we are going to use the model
 $\mathcal{M}$
-of the formula $F$, so as the consistency between the assumptions is guaranteed. For any arithmetic variable $x$, $x_\mathcal{M}$ is
-defined as the value of $x$ in this model, and more generally for any
-term $t$ of theory $T_{\mathbb{Z}}$ (and $+\infty$, $-\infty$),
-$t_{\mathcal{M}}$ is the interpretation of $t$ in this model.
-
-%In what follows, we describe a way to compute $K_{I, j}$ as well as
-%$A_{S \sqcap S'}$ in regards to the model, so as the assumptions are
-%consistent (and the model satisfies them).
+of the formula $G$, so as the consistency between the assumptions is guaranteed.
 
 If
-$max(a_\mathcal{M}, c_\mathcal{M}) < min(b_\mathcal{M}, d_\mathcal{M})$,
+$max(a^\mathcal{M}, c^\mathcal{M}) < min(b^\mathcal{M}, d^\mathcal{M})$,
 then $K_{I, J} = [max(a, c), min(b, d))$ (where $max(a, c)$ is $a$
-if $a_\mathcal{M} > c_\mathcal{M}$, else $c$), else it is undefined
+if $a^\mathcal{M} > c^\mathcal{M}$, else $c$), else it is undefined
 (because in the model, the interpretation of the intervals are indeed
 disjoints).
 
@@ -380,7 +374,7 @@ The intersection of $I$ and $J$ is guided by the model.
 Every time there is a decision to take (such as $a < c$), the values
 of the model are looked at. Those decisions are recorded, as they
 are the assumptions required for this interpretation to be correct. The
-set $A_{S\sqcap S'}$ is composed of those decision. By induction, it is clear that if the same model
+set $A_{D\sqcap D'}$ is composed of those decision. By induction, it is clear that if the same model
 $\mathcal{M}$ is used for every intersection, then $\mathcal{M}$ satisfies $A \cup A' \cup A_{D \sqcap D'}$.
 
 %It is also clear that by induction, if $S$ and $S'$ have the
@@ -394,7 +388,7 @@ Property \ref{distincts} clearly holds if it holds for both $D$ and $D'$.
 
 \begin{example}
 
-Let $S = \{ I_1, I_2\} =  \{[0, 10), [12, z)\}$, $A = \{ z > 12 \}$, $S' = \{J\}= \{[15, y)\}$, $A =
+Let $D = \{ I_1, I_2\} =  \{[0, 10), [12, z)\}$, $A = \{ z > 12 \}$, $D' = \{J\}= \{[15, y)\}$, $A =
 \{ y > 15 \}$.
 
 The model $\mathcal{M}$ is $\{ z \mapsto 16, y \mapsto 20 \}$.
@@ -427,7 +421,7 @@ Then, the arithmetic domain for $\lnot \phi$ is $D' = \{(-\infty, a_1), [b_1, a_
 Let $S$ be an arithmetic domain computed with the rules described above, and $A$ the associated set of assumptions.
 
 Then,
-$A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \in S\right)$.
+$A \Rightarrow \left(\phi(x, \mathbf{y}) \iff x \lhd D\right)$.
 
 \label{correctness-interpretation}
 
@@ -444,7 +438,7 @@ Thus, the lemma holds by induction.
 A corollary of property \ref{distincts} is the fact that the cardinality of the reunion of the elements
 of $D$ is the sum of the cardinality of its elements:
 \begin{equation}
-A \implies \sharp\{ x \in D \} = \sum\limits_{I \in D} \sharp\{x \in I\}
+A \implies \sharp\{ x \lhd D \} = \sum\limits_{I \in D} \sharp\{x \in I\}
 \end{equation}
 
 Moreover, we can assume that every interval in $D$ is finite (otherwise this
