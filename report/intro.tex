@@ -37,7 +37,11 @@ symbolically about constraints that can express ``counting'' the
 number of solutions. The ability to reason about number of solutions
 is specially important in modeling of fault-tolerant protocols. A
 typical example of counting constraints is an assumption of the form
-``less than one third of the processes are faulty".
+``less than one third of the processes are faulty". A typical example is the
+Byzantine Generals' Problem \cite{lamport}: several processes (possibly faulty) have to
+agree on a decision. One of the process is the source, and if it is not faulty,
+other non-faulty process have to follow his decision. Otherwise, they have to
+reach an agreement on their own.
 
 Several methods and tools have already been proposed to study
 parametric protocols. However, they are not particularly suited to
