@@ -1,10 +1,8 @@
 % !TEX root = report.tex
 % !TEX program = pdflatex
 
-related work
-optimization stuff
-
-In \cite{AlbertiGP16, schweikardt}, there is already a way to solve
+During my internship, I developed a tool to solve counting constraints with
+arrays. In \cite{AlbertiGP16, schweikardt}, there is already a way to solve
 formulas with counting constraints. However, while they definitively explain that the problem
 is decidable and why, they heavily rely on quantifier elimination and
 thus may not be very practical nor easily integrated in modern SMT
@@ -16,3 +14,9 @@ The tool we developed could be improved. Divisibility constraints would be
 useful to have a tool that supports all the Presburger arithmetic, even if we
 did not find it useful for model checking related problems. Integration inside
 an SMT solver could also provide a significant performance overhaul.
+
+The decision procedure can be extended to support
+interpolation and other advanced features of modern SMT solvers. Those features
+are needed to implement modern and efficient model checking algorithms such as
+IC3. The integration in existing solversand the extensibility of the decision
+procedure is the main contribution of my internship.

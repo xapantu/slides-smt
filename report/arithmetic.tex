@@ -31,32 +31,51 @@ Figure \ref{formula}.
 \label{formula}
 \end{figure}
 
-Constraints of the form $c = \cterm{\phi}$ are called
-\emph{counting constraints} and denote the number of solutions for $k$
+We call the terms of the form $\cterm{\phi}$ \emph{counting
+terms}, and formulas of the form $c = \cterm{\phi}$
+\emph{counting constraints}. 
+Counting constraints denote the number of solutions for $k$
 that satisfy the formula $\phi$.
 More formally, given a model $\mathcal{M}$ that
 assigns all variables other than $k$, the term $\cterm{\psi}$
-denotes the cardinality of the set $S \subseteq \mathbb{Z}$ such that
-$v \in S \iff \mathcal{M}^v_k \vDash \phi$. In order for the semantics
+denotes the cardinality of the set $D \subseteq \mathbb{Z}$ such that
+$v \in D \iff \mathcal{M}^v_k \vDash \phi$. In order for the semantics
 of the counting terms to be well defined, we assume that all counting
-terms are over formulas that ensure $k$ is always bounded\footnote{As soon as there is a constraint where $k$ is not bounded, it is considered \texttt{unsat}.}.
+terms are over formulas that ensure $k$ is always bounded\footnote{Otherwise, as a counting term must be evaluated in $\mathbb{Z}$, no model can represent an infinite $D$. If a counting term has to be evaluated to the cardinality of an infinite set, then the formula is considered \texttt{unsat}.}.
 
 \begin{example}
 \label{ex:semantics}
 The formula $c = \cterm{0 < k \le 10 \land 5 < k \le 10}$ is
-satisfied in a model that assignes $c \mapsto 5$.
+satisfied in a model that assignes $c \mapsto 5$. It is
+easy to see that in $\mathcal{M}$ the counting term evaluates to
+\begin{align*}
+  \cterm{0 < k \le 10 \land 5 < k \le 10}^\mathcal{M} = |D| = 5\enspace, &&
+  \text{ where } D = [6, 10]\enspace.
+\end{align*}
+
 \end{example}
 
 \begin{example}
 \label{ex:simple}
-The formula $c = \cterm{0 < k \le c + 1} \land c > 0$ is
-not satisfiable. This is because the formula is equivalent to the
-formula $c = c+1 \land c >0$ which is not satisfiable.
+The following formula
+\begin{align*}
+  c = \cterm{0 \le k \le c} \land (c > 0)
+\end{align*}
+is not satisfiable. In order for the formula to be satisfiable, the
+the satisfying model $\mathcal{M}$ has to assign $c$ to a value
+$c^\mathcal{M} > 0$. In such a model the counting term then evaluates to
+\begin{align*}
+  \cterm{0 \le k \le c}^\mathcal{M} = c^\mathcal{M} + 1\enspace,
+\end{align*}
+and the counting constraint is therefore must be false. Moreover it
+is clear that the formula is equivalent to a purely arithmetic
+formula $(c=c+1) \land (c>0)$, which is not satisfiable in $\qflia$.
 \end{example}
 
 Example above illustrates that, in the theory $\qfclia$, formulas with
-counting constraints can be reduced to formulas in $\qflia$. But, in
-order to do so, in general many different cases need to be considered.
+counting constraints can be reduced to formulas in $\qflia$. This is
+true due to $\qflia$ admitting quantifier elimination \cite{schweikardt}.
+But, obtaining a full reduction is general is not a simple as above.
 
 \begin{example}
 \label{ex:disjunction}
@@ -64,31 +83,38 @@ Let  $F$ be the formula
 \begin{align*}
   c = \cterm{0 < k \le x \land 0 < k \le y}\enspace.
 \end{align*}
-In this case, the counting term can not be directly expressed with an
-arithmetic expression. This is because the value of the value of the
-counting term is depends on the relationship between the values of
-variables $x$ and $y$. In any model $\mathcal{M}$ where $x \le y$ is
-true the formula $F$ is equivalent to $c = x$, and in any model $M$
-where $x > y$ is true the formula $F$ is equivalent to $c = y$.
-However, we can ``split'' on the relationship between $x$ and $y$ to
-obtain a purely arithmetic formula equivalent to $F$
+In this case, the counting term can not be directly expressed with a
+single arithmetic term. This is because the value of the counting term
+in a model $\mathcal{M}$ depends on the relationship between the values
+of variables $x$ and $y$:
+\begin{itemize}
+  \item if $x^\mathcal{M} \le y^\mathcal{M}$, then $\cterm{0 < k \le x \land 0 < k \le y}^\mathcal{M} = x^\mathcal{M}$;
+  \item if $x^\mathcal{M} > y^\mathcal{M}$, then $\cterm{0 < k \le x \land 0 < k \le y}^\mathcal{M} = y^\mathcal{M}$.
+\end{itemize}
+But, these assumptions on the relationship between $x$ and $y$ can
+be used as symbolic assumption to obtain an equicalent arithmetic
+formula
 \begin{align*}
   (x \le y \implies c = x) \lor (x > y \implies c = y)\enspace.
 \end{align*}
 \end{example}
 
 Counting constraints provide a way to specify how many integers
-satisfy a given predicate and can, in a bounded setting, be used to
-express quantifiers over the integers. An existential quantifier can
-be transformed into a constraint involving a cardinality greater than
-1, and a universal quantifier into a counting constraint composed of a
-cardinality equal to 0, i.e.\footnote{A more simplistic reduction would be
-  $\exists k . \phi \equiv \cterm{\phi} > 0$, but as there is no guarantee that $k$ is bounded, problems arise with formulas such as $\exists k . k > 0$, where $\cterm{k>0} > 0$ is then the comparison of an infinite number and 0.}
+satisfy a given predicate and can be used to
+express quantifiers over the integers. Existential and universal quantifiers can
+be transformed into counting constraints. More specifically, a universally
+quantified term $\forall k . \phi$ can be replaced by a fresh boolean variable
+$b$, with the addition of those two additional constraints\footnote{A more simplistic reduction would be
+  $\forall k . \phi \equiv \cterm{\lnot \phi} = 0$, but as there is no guarantee
+  that $k$ is bounded, problems arise with formulas such as $\forall k . k > 0$,
+  where $\cterm{k\leq 0}$ is then undefined (or if defined would need the
+  comparison of an infinite number and $0$).}:
 \begin{align*}
-  \exists k . \phi &\;\;\equiv\;\; \cterm{p < k < q \land \phi} > 0 \enspace, \text{\ where $p$ and $q$ are two fresh arithmetic variables}\\
-  \forall k . \phi &\;\;\equiv\;\; b \text{\ with the additional constraints\ } \lnot b \implies \cterm{p < k < q \land \lnot \phi} > 0 \enspace. \\
-  b \implies \cterm{b \land \implies \lnot \phi} = 0 \enspace. \\
+  \lnot b \implies \cterm{p < k < q \land \lnot \phi} > 0 \\
+  b \implies \cterm{b \land \lnot \phi} = 0
 \end{align*}
+ where $p$ and $q$ are two fresh arithmetic variables. Rewriting existential
+ quantification is done in a similar way.
 
 Reasoning with quantifiers in SMT is known to be a hard problem
 \cite{ge2010solving,weispfenning1988complexity}. Some theories, such
@@ -181,7 +207,7 @@ procedure is shown in Algorithm \ref{arith}.
         \State $\langle A_i, D_i \rangle \gets \interpret(\mathcal{M}, c_i, \phi_i)$
         \State $\assert(A_i)$
         \State $\assert(c_i = \sum_{[a, b] \in D_i} b - a)$
-        \If{$S_i$ is infinite}
+        \If{$D_i$ is infinite}
 			\State $\pop()$
             \State \Call{assert}{$\lnot A_i$}
             \State \Call{continue}{}
@@ -200,31 +226,30 @@ procedure is shown in Algorithm \ref{arith}.
 \label{arith}
 \end{algorithm}
 
+\newpage
 \begin{example}
-\ \newline Let $F \equiv N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \land c = \sharp\{ x \mid 0 \le x < N \land (x < z \lor x < u) \}$.
-For this formula, the algorithm works as follows:
+
+Consider the following formula
+
+\begin{multline*}
+\overbrace{N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0}^G \\
+\land c = \cterm{\underbrace{0 \le k < N \land (k < z \lor k < u)}_\phi}\enspace.
+\end{multline*}
+
 \begin{itemize}
-\item \textsc{assert}$\left(N > z \land N > u \land z \ge 10 \land c > z \land u \ge 0 \right)$.
-\item \textsc{push}$()$
-\begin{itemize}
-	\item First, get a model: $\mathcal{M} = \{ z \mapsto 10, N \mapsto 11, u \mapsto 0, c \mapsto 11\}$.
-	\item Compute the domain of $\{ x \mid 0 \le x < N \land (x < z \lor x < u) \}$.
-	\item The assumptions are $N > z, u < z, N > 0, N > u$ and the domain is $S = \{ [0, z) \}$.
-	\item \textsc{assert}$\left(N > z \land u < z \land N > 0 \land N > u\right)$
-	\item \textsc{assert}$\left(c = z)\right)$
-	\item Then it is \texttt{unsat}, as we can't have both $c = z$ and $c> z$
-\end{itemize}
-\item \textsc{pop}()
-\item The assumptions were not correct, we want to try something else.
-\item \textsc{assert}$\left(\lnot \left(N > z \land u < z \land N > 0 \land N > u\right)\right)$
-\item \textsc{push}$()$
-\begin{itemize}
-\item Get a new model: $\mathcal{M} = \{ z \mapsto 10, N \mapsto 30, u \mapsto 20, c \mapsto 11\}$.
-\item Compute the domain and assumptions, it gets $A = \{ N \ge u, u > z, N > 0, u > 0\}$ and $S = [0, u)$.
-\item \textsc{assert}$\left(N \ge u \land u > z \land N > 0 \land u > 0\right)$
-\item \textsc{assert}$\left(c = u\right)$.
-\item Now it is \texttt{sat}, and the model $\mathcal{M} = \{ z \mapsto 10, N \mapsto 30, u \mapsto 20, c \mapsto 20\}$ satisfies the whole formula.
-\end{itemize}
+\item First, we get a model of $G$. Let's assume it is $\mathcal{M} = \{ z \mapsto 10, N \mapsto 11, u \mapsto 0, c \mapsto 11\}$.
+\item We want to adjust the model $\mathcal{M}$ to be consistent with the
+counting constraints. To do that, we compute (symbolically) the value of the
+counting term $\cterm{\underbrace{0 \le k < N \land (k < z \lor k < u)}_\phi}.$
+\item In $\mathcal{M}$, this counting term evaluates to $z^\mathcal{M}$. Furthermore, under the assumptions $N > z, u < z, N > 0, N > u$, the counting term is equal to $z$.
+\item Then, we ask for a new model with those assumptions, and the assertions $c = z$. The solver replies it is \texttt{unsat} (as we can not have $c > z$ and $c = z$).
+\item Now, we retry, and we ask a model of $G \land \lnot (\ldots)$ (where $\ldots$ is the assumptions computed precedently).
+\item We get a new model $\mathcal{M} = \{ z \mapsto 10, N \mapsto 30, u \mapsto
+20, c \mapsto 11\}$. Evaluating the counting term while retaining the needed
+assumptions gives $u$ with the assumptions $N \ge u, u > z, N > 0, u > 0$.
+\item Again, we assert those assumptions, $c = u$ and ask for a model. This
+time, we get a model $\mathcal{M} = \{ z \mapsto 10, N \mapsto 30, u \mapsto 20,
+c \mapsto 20\}$, which satisfies the whole formula.
 \end{itemize}
 
 \end{example}
@@ -247,8 +272,9 @@ means the conjunctions of the atoms of $A$.
 
 \begin{definition}[Symbolic Interval]
 
-A symbolic interval is a couple of values that are either arithmetic
-variables, constants or $\infty$. If $I = [a, b)$, $x \in I$ is
+A symbolic interval is a couple of values that are either an arithmetic
+term\footnote{In my implementation, the term has to be a variable or a constant,
+which is sufficient if new variable can be added.} or $\infty$. If $I = [a, b)$, $x \in I$ is
 defined as $x < b \land a \le x$. \newline~\newline
 It is finite if none of the bounds are infinite.
 
@@ -268,22 +294,31 @@ the lower bound of an interval is lower than the upper bound.
 
 \end{definition}
 
-Let S be an arithmetic domain. We write $x \in S$ for
+Let $D$ be an arithmetic domain. We write $x \lhd D$ for
 $\left(\bigvee\limits_{I \in S} x \in I\right)$.
 
-Let $\psi_i$ be one of the formula of the counting constraints. We are going to give rules to compute $(S, A)$ such as
-$A \implies \forall x \left(\psi_i(x, \mathbf{y}) \iff x \in S\right)$. The goal is to express the
-cardinality $\sharp\{x \mid \psi_i(x)\}$ with an arithmetic formula (see below), which is easy if $S$ is only
-comprised of distinct intervals. That is why we want the set $S$
+\begin{example}
+Let $I_1 = [0, x), I_2 = [y, 10)$ be two symbolic intervals. Let $D = {I_1, I_2}$
+an arithmetic domain, associated to the assumption $0 \leq x < y \leq 10$.
+
+Then, $z \lhd D$ means that $z$ belongs either to $I_1$ or to $I_2$, that is:
+\begin{align*} z \lhd D \iff 0 \leq z < x \lor y \leq z < 10\end{align*}
+\end{example}
+
+Let $\psi_i$ be one of the formula of the counting constraints. We are going to
+give rules to compute a domain $D$ and a set of assumptions $A$ such as
+$A \implies \forall x \left(\psi_i(x, \mathbf{y}) \iff x \lhd D\right)$. The goal is to express the
+cardinality $\sharp\{x \mid \psi_i(x)\}$ with an arithmetic formula (see below), which is easy if $D$ is only
+comprised of distinct intervals. That is why we want the set $D$
 to satisfy the following property:
 
 
 \begin{property}[Distincts]
 
-Let $S$ be an arithmetic domain computed with the rules described above, and $A$ the associated set of assumptions.
-Let $I, J \in S$ such that $I \neq J$.
+Let $D$ be an arithmetic domain, and $A$ the associated set of assumptions.
 
-Then, $A \implies (x \in I \implies x \not\in J)$, i.e.
+$D$ is said to have the property \ref{distincts} if for $I, J \in D$ such that
+$I \neq J$, we have $A \implies (x \in I \implies x \not\in J)$, i.e.
 $\{x\ |\ x \in I\}$ and $\{x\ |\ x \in J\}$ are
 disjoints\footnote{Here, $x \in I$ is still defined as $a \le x \land x < b$ if $I = [a, b)$.}.
 
@@ -304,16 +339,16 @@ If the formula is $x < y$, then the arithmetic domain is $\{(-\infty, y)\}$, wit
 
 If the formula is a literal $l$ of the theory $\qflia$, then we look at the value of $l$ in
 $\mathcal{M}$. If it is \texttt{true}, then $S = \{(-\infty, +\infty)\}$ and the assumptions are
-$\{l\}$. If it is \texttt{false}, then $S = \emptyset$ and the assumptions are $\{\lnot l\}$.
+$\{l\}$. If it is \texttt{false}, then $D = \emptyset$ and the assumptions are $\{\lnot l\}$.
 
 Property \ref{distincts} clearly holds.
 
 \paragraph{Conjunction}
 
-Let $S$ and $S'$ be two arithmetic domains computed for $\phi$ and $\psi$, and $A$, $A'$ the sets of assumptions associated to
-them. The domain of $\phi\land\psi$ is the intersection of $S$ and $S'$. To construct this intersection $S \sqcap S'$, we are going to
-do the intersection of an interval $I$ of $S$ and an interval $J$
-of $S'$.
+Let $D$ and $D'$ be two arithmetic domains computed for $\phi$ and $\psi$, and $A$, $A'$ the sets of assumptions associated to
+them. The domain of $\phi\land\psi$ is the intersection of $D$ and $D'$. To construct this intersection $D \sqcap D'$, we are going to
+do the intersection of an interval $I$ of $D$ and an interval $J$
+of $D'$.
 
 So, let $I = [a, b)$ and $J = [c, d)$ be two symbolic intervals. We want a new
 interval $K_{I, J} = [e, f)$ such as
@@ -346,16 +381,16 @@ Every time there is a decision to take (such as $a < c$), the values
 of the model are looked at. Those decisions are recorded, as they
 are the assumptions required for this interpretation to be correct. The
 set $A_{S\sqcap S'}$ is composed of those decision. By induction, it is clear that if the same model
-$\mathcal{M}$ is used for every intersection, then $\mathcal{M}$ satisfies $A \cup A' \cup A_{S \sqcap S'}$.
+$\mathcal{M}$ is used for every intersection, then $\mathcal{M}$ satisfies $A \cup A' \cup A_{D \sqcap D'}$.
 
 %It is also clear that by induction, if $S$ and $S'$ have the
 %property \ref{distinct}, $S\sqcap S'$ also respect this property.
 
 Then, the intersection of the domains is defined as
-$S \sqcap S' = \{ K_{I, J} \ |\ I \in S, J \in S' \}$. Some intervals $K_{I, J}$ may not be defined
-if they are empty. The associated assumptions set is $A \cup A' \cup A_{S \sqcap S'}$.
+$D \sqcap D' = \{ K_{I, J} \ |\ I \in D, J \in D' \}$. Some intervals $K_{I, J}$ may not be defined
+if they are empty. The associated assumptions set is $A \cup A' \cup A_{D \sqcap D'}$.
 
-Property \ref{distincts} clearly holds if it holds for both $S$ and $S'$.
+Property \ref{distincts} clearly holds if it holds for both $D$ and $D'$.
 
 \begin{example}
 
@@ -369,48 +404,22 @@ $I_2$ with $J$. As $max(15, 12) = 15 < min(z_\mathcal{M}, y_\mathcal{M}) = 16 = 
 intersection is $[15, z)$. The assumptions needed to do this intersection are $15 > 12, y > z, z >
 15$.
 
-The arithmetic domain is then $S\sqcap S' = \{[15, z)\}$ with the associated assumptions $\{z > 12,
+The arithmetic domain is then $D\sqcap D' = \{[15, z)\}$ with the associated assumptions $\{z > 12,
 y > 15, 15 > 12, y > z, z > 15\}$.
 
 \end{example}
 
 \paragraph{Negation}
 We want to compute an arithmetic domain for a formula $\lnot \phi$. We assume we have an arithmetic
-domain $S$ (with assumptions $A$) computed for $\phi$. Then property \ref{distincts} holds. There
-are several cases, but here I only explain how the algorithm works if there is no $\infty$ in $S$.
+domain $D$ (with assumptions $A$) computed for $\phi$. Then property \ref{distincts} holds. There
+are several cases, but here I only explain how the algorithm works if there is no $\infty$ in $D$.
 
-By looking at the values in the model $\mathcal{M}$ of the bounds of the intervals in $S$, we can
-choose inequalities that make $S = \{[a_1, b_1), \ldots, [a_k, b_k)\}$ ordered, i.e. $\forall i$, $A
+By looking at the values in the model $\mathcal{M}$ of the bounds of the intervals in $D$, we can
+choose inequalities that make $D = \{[a_1, b_1), \ldots, [a_k, b_k)\}$ ordered, i.e. $\forall i$, $A
 \implies b_i < a_{i+1}$.
 
-Then, the arithmetic domain for $\lnot \phi$ is $S' = \{(-\infty, a_1), [b_1, a_1), \ldots, [b_k,
-+\infty)\}$, and the assumptions are those in $A$ and the new ones chosen to order $S$.
-
-%\begin{definition}[Domains intersection, $S \sqcap S'$ and $A_{S \sqcap S'}$]
-
-%If $S$ and $S'$ are two arithmetic domains associated to the
-%assumptions $A$ and $A'$, then the intersection $S\sqcap S'$ is
-%defined as an arithmetic domain such as\newline
-%$A \cup A' \cup A_{S\sqcap S'} \implies \left(\left(x \in S \land x \in S'\right)\iff x \in S \sqcap S'\right)$\newline (where
-%$x \in S$ means $\left(\bigwedge\limits_{I\in S} x \in I\right)$).
-
-%\label{domains}
-
-%\end{definition}
-
-%\vspace{3mm}
-
-%\begin{definition}[Complementary Domains, $S^c$]
-
-%If $S$ is an arithmetic domain, then $S^c$ is defined as a set of
-%intervals such as
-%$\forall x.\ \left( \exists I \in S.\ x \in I\right) \iff \left( \not\exists I \in S^c.\ x \in I\right)$.
-
-%\label{complementary}
-
-%\end{definition}
-
-%\vspace{3mm}
+Then, the arithmetic domain for $\lnot \phi$ is $D' = \{(-\infty, a_1), [b_1, a_1), \ldots, [b_k,
++\infty)\}$, and the assumptions are those in $A$ and the new ones chosen to order $D$.
 
 
 \begin{lemma}[Correctness]
@@ -433,16 +442,16 @@ Thus, the lemma holds by induction.
 
 
 A corollary of property \ref{distincts} is the fact that the cardinality of the reunion of the elements
-of $S$ is the sum of the cardinality of its elements:
+of $D$ is the sum of the cardinality of its elements:
 \begin{equation}
-A \implies \sharp\{ x \in S \} = \sum\limits_{I \in S} \sharp\{x \in I\}
+A \implies \sharp\{ x \in D \} = \sum\limits_{I \in D} \sharp\{x \in I\}
 \end{equation}
 
-Moreover, as the formula inside every counting constraints is of the form $t_1 \le x < t_2 \land
-\phi$ (Figure \ref{formula}), it is clear that every interval in S is finite. Then, if $S$ and $A$
+Moreover, we can assume that every interval in $D$ is finite (otherwise this
+special case is handled by the algorithm). Then, if $D$ and $A$
 were computed for a formula $\phi$:
 \begin{equation}
-A \implies \sharp\{x \mid \phi(x, \mathbf{y})\} = \sum\limits_{[a, b)\, \in\, S} b - a
+A \implies \sharp\{x \mid \phi(x, \mathbf{y})\} = \sum\limits_{[a, b)\, \in\, D} b - a
 \end{equation}
 
 

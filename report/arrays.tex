@@ -41,7 +41,7 @@ specify that at most one third of the components are faulty.
 
 The elements of the arrays can be of any sort, but as we are working with
 $\qflia$, we assume they belong to $\mathbb{Z}$\footnote{But the algorithm does
-not rely on this, so it does not change anything if we use a richer theory with
+not rely on this, so it would not change anything if we used a richer theory with
 more sorts.}
 
 As soon as there is an array term in the counting constraints, the
@@ -67,7 +67,9 @@ SMT solver, which is more efficient.
 The algorithm to solve counting constraints with arrays is mostly the
 same as the one to solve pure arithmetic counting constraints. While we do the interval analysis,
 we must save the constraints on the arrays. In the end, those constraints must be checked for
-satisfiability and whether they conflict in case there are several constraints for the same interval.
+satisfiability and whether they conflict in case there are several constraints
+for the same interval. Pseudocode of the algorithm is show in Algorithm
+\ref{arrayalgo}.
 
 During my internship, I experimented several possible algorithms to
 manipulate those constraints. The algorithm I describe here might seem a
@@ -77,40 +79,71 @@ solver can be much more efficient than a less optimized specialized
 algorithm.
 
 \begin{algorithm}[h]
-\caption{Satisfiability of arithmetic and formula with counting constraints}
+\caption{Satisfiability of a formula with arrays and counting constraints}
 \begin{algorithmic}[1]
-\State \Call{assert}{$F(\mathbf{y}, c_1, \ldots, c_n)$}
-\While{$\mathcal{M} = $ \Call{check-sat}{\ } }
-    \State \Call{push}{\ }
-    \State $A \gets \emptyset$
-    \ForAll{ $i$ in $[1..n]$}
-        \State $A_i, S_i \gets $ \Call{interpret-constraint}{$c_i$, $\phi_i$,
-        $\mathcal{M}$}
-        \State $A \gets A \cup A_i$
-        \If{$S_i$ is infinite}
-            \State \Call{assert}{$\lnot \left( A \right)$}
+\Procedure{\checkcsat}{F}
+\Require $F \equiv G(\vec{x}, \vec{c}) \land \bigwedge_{i=1}^n c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}$.
+\State $\assert(G)$
+\While{$\mathcal{M} = \checksat()$}
+    \LineComment Interpret constraints in $\mathcal{M}$ and collect assumptions.
+    \State $\push()$
+    \ForAll{ $i \in [1..n]$}
+        \LineComment Compute assumptions and domains for $i$-th constraint
+        \State $\langle A_i, D_i \rangle \gets \interpret(\mathcal{M}, c_i, \phi_i)$
+        \State $\assert(A_i)$
+        \If{$D_i$ is infinite}
+			\State $\pop()$
+            \State \Call{assert}{$\lnot A_i$}
             \State \Call{continue}{}
         \EndIf
     \EndFor
-    \State \Call{slice}{$(S_i)_i$}
-    \State \Call{partition}{$(S_i)_i$}
-    \State \Call{assert}{$A$}
-    \State \Comment{$v_\alpha$ is a variable corresponding to a constraint associated to $S_i$}
+    \State \Call{slice}{$(D_i)_i$}
+    \State \Call{partition}{$(D_i)_i$}
+    \State \Comment{$v_\alpha$ is a variable corresponding to a constraint associated to $D_i$}
     \State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} \sum\limits_{\alpha} v_{\alpha}$}
-    \State \Call{assert-constraints}{$(S_i)_i$}
-    \If {\Call{check-sat}{\ } }
-        \State \Call{pop}{\ }
-        \State \Return{sat}
+    \State \Call{assert-constraints}{$(D_i)_i$}
+    \LineComment Check if the assumptions and counting constraints are consistent.
+    \If {$\mathcal{M}_\sharp = \checksat()$}
+        \State \Return{$\langle \sat, \mathcal{M}_\sharp \rangle$}
     \EndIf
-    \State \Call{pop}{\ }
-    \State \Call{assert}{$\lnot \left( A \right)$}
+    \State $\pop()$
+    \State $\assert(\lnot A_1 \vee \ldots \vee \lnot A_n)$
 \EndWhile
-\State \Return{unsat}
+\State \Return{\unsat}
+\EndProcedure
 \end{algorithmic}
 \label{arrayalgo}
 \end{algorithm}
 
+\newpage
+
 \begin{example}
+Consider the following formula
+
+\begin{multline*}
+\overbrace{N > 0 \land c_1 > N/2 \land c_2 > N/2}^G \\
+\land c_1 = \cterm{\underbrace{0 \le k < N \land a[k] > 0}_{\phi_1}} \\
+\land c_2 = \cterm{\underbrace{0 \le k < N \land a[k] \leq 0}_{\phi_2}}\enspace.
+\end{multline*}
+
+\begin{itemize}
+\item First we ask \solver for a model of $G$, it gives $\mathcal{M} = \{ N
+\mapsto 1, c_1 \mapsto 1, c_2 \mapsto 1 \}$.
+\item For both counting terms, domains are computed and are composed of a single
+interval: $[0, N)$ associated to $a[\cdot] > 0$ and $[0, N)$ associated to
+$a[\cdot] \leq 0$. Here, slicing do not change the domain,
+as there is a single interval. Partitioning creates 4 constraint: $a[\cdot] >
+0 \land a[\cdot] \leq 0$, $a[\cdot] > 0 \land \lnot (a[\cdot] \leq 0)$,
+$\lnot(a[\cdot] > 0) \lnot a[\cdot] \leq 0$, $\lnot (a[\cdot] > 0) \land \lnot
+(a[\cdot] \leq 0)$.
+\item New variables (positive integers) are created for every constraint (there is a single
+interval): $v_1$, $v_2$, $v_3$, $v_4$. We assert
+that $c_1 = v_1 + v_2$ and $c_2 = v_1 + v_3$. We also assert that $N = v_1 + v_2
++ v_3 + v_4$.
+\item Then we ask \solver for a model, and it says \texttt{unsat}: it is not
+possible to have $c_1 > N/2$, $c_2 > N/2$ and $N = v_1 + v_2 + v_3$.
+\end{itemize}
+
 \end{example}
 
 \subsubsection{Constraints on the Arrays}
@@ -151,7 +184,7 @@ constraint which is the literal, and to an empty assumptions set.
 
 \subsubsection{Checking the Constraints on the Arrays}
 
-\ifthenelse{0=0}{}{
+\ifthenelse{0=1}{}{
 We now want to generate a set of constraints that are equivalent to the
 satisfiability of the formula and the counting constraints.
 
@@ -178,7 +211,7 @@ $\phi_1, \ldots, \phi_l$. From these one we can create a set of formula
 $\psi_1, \ldots, \psi_{l'}$ which are a
 partition\footnote{A partition is a set of formula $\psi_1, \ldots, \psi_n$ such as $\psi_1 \lor \ldots \lor \psi_n \equiv \top$ but $\forall i, j. \; \psi_i \land \psi_j \equiv \bot$.}.
 There can be at most $2^l$ formula, but of course that can be
-dramatically reduced in practice with heuristics such as memoization are
+dramatically reduced in practice with heuristics such as memoization and
 inclusion detection.
 
 \paragraph{Arithmetic Constraints}\label{arithmetic-constraints}
@@ -192,17 +225,14 @@ create a new variable $v_i$ (such as $0 \le v_i$) for every
 $\sharp\{x\ |\ \psi_i(a_1[x], \ldots, a_n[x]\}$ and adds the constraint
 $b - a = \sum v_i$ to the solver. As long as every $\psi_i$ is
 satisfiable, then we can build arrays that satisfy
-$v_i = \sharp\{x\ |\ \psi_i(a_1[x], \ldots, a_n[x]\}$. Hence, we must add
+$v_i = \sharp\{x\ |\ \psi_i(a_1[x], \ldots, a_n[x]\}$. Hence, we must assert
 $v_i > 0 \implies \psi_i(a_{i, 1}, \ldots, a_{i, n})$ (with new variables
-$a_{i, 1}, \ldots$.
+$a_{i, 1}, \ldots, a_{i, n})$.
 
-\paragraph{Algorithm}\label{algorithm-1}
 
-See algorithm \ref{arrayalgo}.
+Then, we have to link the $v_i$ to the original counting term. We assert that
+every counting term is equal to the sum of the $v_i$ that are derived from it.
 
-\paragraph{Example}\label{example-1}
-
-TODO
 }
 
 \subsection{Implementation}
@@ -230,7 +260,7 @@ The only two operations on arrays are \texttt{select} and
 \texttt{store}. \texttt{(select\ a\ x)} access the array $a$ at index
 $x$ (also written $a[x]$), while \texttt{(store\ a\ x\ b)} creates a
 new array whose elements are the same as $a$ but for $x$, where it
-is set to $b$. The two axioms of this theory are:
+is set to $b$ (also written $a[x \leftarrow b]$). The two axioms of this theory are:
 
 \begin{subequations}
     \begin{align}
@@ -258,6 +288,15 @@ value. And the default value does not matter, as long as there is no
 equality.
 
 \begin{example}
+We consider the formula:
+\begin{equation*}
+a[z] < 0 \land a = b[z \leftarrow -5] \land a[z] \neq b[y]
+\end{equation*}
+
+The solver \solver gives a model of this formula in which $y$ is different from
+$z$, $a[z] = -5$, $a[y] = b[y] = 0$ and the rest of the arrays is equal to $0$
+(the default value). This example illustrate the fact that there is no need to
+specify values for indexes that do not appear in the formula.
 \end{example}
 
 
