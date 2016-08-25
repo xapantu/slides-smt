@@ -208,13 +208,13 @@ meantime the set of assumptions may be made bigger).
 
 \paragraph{Partition}\label{partition}
 
-At this point we have a set of domains who all have the same intervals
+At this point we have a set of domains that all have the same intervals
 but different array constraints associated with them. For an interval
 $I$, we consider every constraints associated with it, i.e.,
-$\phi_1, \ldots, \phi_l$. From these one we can create a set of formula
-$\psi_1, \ldots, \psi_{l'}$ which are a
-partition\footnote{A partition is a set of formula $\psi_1, \ldots, \psi_n$ such as $\psi_1 \lor \ldots \lor \psi_n \equiv \top$ but $\forall i, j. \; \psi_i \land \psi_j \equiv \bot$.}.
-There can be at most $2^l$ formula, but of course that can be
+$\phi_1, \ldots, \phi_l$. From these, we can create a set of formula
+$\psi_1, \ldots, \psi_{l'}$ which is a
+partition.\footnote{A partition is a set of formula $\psi_1, \ldots, \psi_n$ such as $\psi_1 \lor \ldots \lor \psi_n \equiv \top$ but $\forall i, j. \; \psi_i \land \psi_j \equiv \bot$.}
+There can be at most $2^l$ formulas, but of course that can be
 dramatically reduced in practice with heuristics such as memoization and
 inclusion detection.
 
@@ -246,8 +246,8 @@ array constraint. This is not very efficient, because the underlying SMT
 solver has no clue regarding the consistency of the values it provides
 for an array read. That's why it is interesting to change this algorithm
 to make it work with a usual array theory of an SMT solver. The
-algorithm then has to take into account the decision that the SMT solver
-when it outputs the constraints, so as the result is consistent
+algorithm then has to take into account the decision that the SMT solver makes
+when it outputs the constraints, so that the result is consistent
 (i.e., the arrays are not defined twice).
 
 Unfortunately, as our algorithm operates outside of the solver, the
@@ -256,12 +256,12 @@ understand how the theory of arrays is usually implemented to make it
 work with the counting constraints algorithm described in the last
 section.
 
-A state of the art implementation of the theory of arrays is described
+A state-of-the-art implementation of the theory of arrays is described
 in \cite{de2009generalized}. More specifically, it
-explains how works the SMT solver Z3.
+explains how the SMT solver Z3 works.
 
 The only two operations on arrays are \texttt{select} and
-\texttt{store}. \texttt{(select\ a\ x)} access the array $a$ at index
+\texttt{store}. \texttt{(select\ a\ x)} accesses the array $a$ at index
 $x$ (also written $a[x]$), while \texttt{(store\ a\ x\ b)} creates a
 new array whose elements are the same as $a$ but for $x$, where it
 is set to $b$ (also written $a[x \leftarrow b]$). The two axioms of this theory are:
@@ -274,7 +274,7 @@ is set to $b$ (also written $a[x \leftarrow b]$). The two axioms of this theory 
     \end{align}
 
 
-    Additionnaly, there is the extensionality axiom:
+    Additionaly, there is the extensionality axiom:
 
     \begin{align}
         \forall a:(\sigma \implies \tau), b:(\sigma \implies \tau)\, .\, a \neq b \iff \exists i\: a[i] \implies a[i] \neq b[i]
@@ -282,7 +282,7 @@ is set to $b$ (also written $a[x \leftarrow b]$). The two axioms of this theory 
 \end{subequations}
 
 For the first two axioms, it is clear that the SMT solver is only going
-to take decisions about terms index which appear inside a \texttt{store}
+to take decisions about index terms which appear inside a \texttt{store}
 and a \texttt{select}. An equality might introduce additional indexes to
 make two arrays different. That's why an array extracted from a model of
 an SMT solver always follows the same pattern: special values are
@@ -299,7 +299,7 @@ a[z] < 0 \land a = b[z \leftarrow -5] \land a[z] \neq b[y]
 
 The solver \solver gives a model of this formula in which $y$ is different from
 $z$, $a[z] = -5$, $a[y] = b[y] = 0$ and the rest of the arrays is equal to $0$
-(the default value). This example illustrate the fact that there is no need to
+(the default value). This example illustrates the fact that there is no need to
 specify values for indexes that do not appear in the formula.
 \end{example}
 
@@ -309,13 +309,13 @@ the SMT solver decisions about arrays, we only have to take into account
 the value at those index terms, and array equality if needed.
 
 The first problem can be solved by tracking those index terms, then
-looking at the model which slice they belong to, and group them by
+extracting from the model the slice to which they belong, and group them by
 slice. Then, for every array constraint $\phi_\alpha$ of this slice,
-some new clauses must be sent to the solver to ensure the consistency of
-this values decided by the SMT solver with the number of $x$ which
+some new clauses must be sent to the solver to ensure that the values decided by
+the SMT solver are consistent with the number of $x$ which
 satisfies $\phi_\alpha$
 
-The equality between two arrays must also be tracked, they must be taken
+Equalities between arrays must also be tracked. They must be taken
 into account when the arithmetic constraints are expressed at the end of
 the algorithm by adding new array constraints. In my implementation, some heuristics (such as
 substitution of the arrays when there is equality) are also used.
