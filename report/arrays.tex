@@ -7,13 +7,14 @@ described in Figure \ref{syntaxarray}. It is important to note that
 arrays are only accessed on the quantified variable, and not on a
 general term built on this variable (such as $k + 1$, or a nested
 array read). Removing this syntax restriction leads to an undecidable
-array theory fragment, as stated in
+theory fragment, as stated in
 \cite{bradley2006s}, even for small additions to the
 fragment.
 
-In additions to the restriction already described in the first section, it is also necessary for the
-formulas inside counting constraints to not have atoms with both an array read $a_i[x]$ and $x$,
-that is, atoms like $a_i[x] = x$ are forbidden.
+Counting constraints are subject to the same restrictions as in
+Section 1. In addition, we do not allow counting constraints to 
+contain atoms where both $a_i[x]$ and $x$ occur. For example, the 
+atom $a_i[x] = x$ is forbidden.
 
 \begin{figure}[h]
 \begin{grammar}
@@ -40,13 +41,13 @@ tolerant systems, this is an important detail, as we typically want to
 specify that at most one third of the components are faulty.
 
 The elements of the arrays can be of any sort, but as we are working with
-$\qflia$, we assume they belong to $\mathbb{Z}$\footnote{But the algorithm does
+$\qflia$, we assume they belong to $\mathbb{Z}.$\footnote{The algorithm does
 not rely on this, so it would not change anything if we used a richer theory with
-more sorts.}.
+more sorts.}
 
 As soon as there is an array term in the counting constraints, the
 cardinality can no longer be infinite, as the array can only be accessed
-on a finite interval, that is, term $a[k]$ implicitly implies that $0 \le k < N$ if $a$ is an array of size $N$.
+on a finite interval, that is, term $a[k]$ implies that $0 \le k < N$ if $a$ is an array of size $N$.
 
 It may be interesting to have array reads outside of the counting
 constraints. However, they can be rewritten as counting constraints, as in
@@ -71,9 +72,9 @@ satisfiability and whether they conflict in case there are several constraints
 for the same interval. Pseudocode of the algorithm is show in Algorithm
 \ref{arrayalgo}.
 
-During my internship, I experimented several possible algorithms to
+During my internship, I experimented with several possible algorithms to
 manipulate those constraints. The algorithm I describe here might seem a
-bit brutal as it extensively rely on the SMT solver, but it
+bit brutal as it extensively relies on the SMT solver, but it
 worked better than the other attempts, probably because a modern SMT
 solver can be much more efficient than a less optimized specialized
 algorithm.
@@ -131,10 +132,10 @@ Consider the following formula
 \begin{itemize}
 \item First we ask \solver for a model of $G$, it gives $\mathcal{M} = \{ N
 \mapsto 1, c_1 \mapsto 1, c_2 \mapsto 1 \}$.
-\item For both counting terms, domains are computed and are composed of a single
+\item For both counting terms, the domains are computed and are composed of a single
 interval: $[0, N)$ associated with $a[\cdot] > 0$ and $[0, N)$ associated with
-$a[\cdot] \leq 0$. Here, slicing do not change the domain,
-as there is a single interval. Partitioning creates 4 constraint: $a[\cdot] >
+$a[\cdot] \leq 0$. Here, slicing does not change the domain,
+as there is a single interval. Partitioning creates four constraints: $a[\cdot] >
 0 \land a[\cdot] \leq 0$, $a[\cdot] > 0 \land \lnot (a[\cdot] \leq 0)$,
 $\lnot(a[\cdot] > 0) \lnot a[\cdot] \leq 0$, $\lnot (a[\cdot] > 0) \land \lnot
 (a[\cdot] \leq 0)$.
@@ -152,8 +153,8 @@ possible to have $c_1 > N/2$, $c_2 > N/2$ and $N = v_1 + v_2 + v_3$.
 
 \begin{definition}[Array Constraint]
 
-An array constraint is a first order, quantifier free, formula whose
-free variables are the free variables of the formula and the variables
+An array constraint is a first order, quantifier free formula whose
+free variables are the free variables of the formula G and the variables
 $a_1[\cdot], \ldots, a_k[\cdot]$.
 
 \label{array}
@@ -164,7 +165,7 @@ $a_1[\cdot], \ldots, a_k[\cdot]$.
 \begin{definition}[Domain]
 
 A domain is a finite set of symbolic intervals (definition
-\ref{symbolic}), every one of them associated with an array constraint
+\ref{symbolic}), each  one of them associated with an array constraint
 (definition \ref{array}).
 
 \label{domain}
@@ -172,7 +173,7 @@ A domain is a finite set of symbolic intervals (definition
 \end{definition}
 
 An arithmetic domain (definition \ref{arithmetic}) can then be seen as a
-domain whose every symbolic interval is associated with the constraint
+domain where every symbolic interval is associated with the constraint
 \texttt{true}.
 
 Generating an array constraint for every symbolic interval is done while we compute those symbolic
@@ -181,7 +182,7 @@ look at a conjunction and produce the intersection of every symbolic interval in
 associate to this intersection the conjunction of the array constraints of both intervals.
 
 There are additional base cases, which are the literals with $a_1[x], \ldots, a_k[x]$. For those
-case, we return the domain with one symbolic interval, $(-\infty, +\infty)$,
+cases, we return the domain with one symbolic interval, $(-\infty, +\infty)$,
 associated with the
 constraint which is the literal, and to an empty assumptions set.
 
@@ -196,8 +197,8 @@ constraints) and generate a set of arithmetic constraints.
 
 \paragraph{Slice}\label{slice}
 
-The first operation we do is what we call \emph{slicing}. It means that
-the domains must be transformed so as they all have the same intervals.
+We first apply an operation that we call \emph{slicing}. It means that
+the domains must be transformed so that they all have the same intervals.
 In practice, we are looking for a subdivision of $[A, B)$ (where $A$
 is the lower bound of every array index and $B$ the upper bound) which
 can be used to express every domains. This is a simple operation that I

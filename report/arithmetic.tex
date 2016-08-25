@@ -107,8 +107,8 @@ satisfy a given predicate and can be used to
 express quantifiers over the integers. Existential and universal quantifiers can
 be transformed into counting constraints. More specifically, a universally
 quantified term $\forall k . \phi$ can be replaced by a fresh boolean variable
-$b$, with the addition of those two additional constraints\footnote{A more simplistic reduction would be
-  $\forall k . \phi \equiv \cterm{\lnot \phi} = 0$, but as there is no guarantee
+$b$, with the addition of those two constraints\footnote{A more simplistic reduction would be
+  $\forall k . \phi \equiv \cterm{\lnot \phi} = 0$, but as there are no guarantee
   that $k$ is bounded, problems arise with formulas such as $\forall k . k > 0$,
   where $\cterm{k\leq 0}$ is then undefined (or if defined would need the
   comparison of an infinite number and $0$).}:
@@ -135,9 +135,9 @@ sources of complexity in quantified reasoning. This allows us to
 consider only atoms that are \emph{counting-univariate}, i.e., each
 atom within the counting constraint contains a single occurrence of
 the counting variable. Further, we only consider the case where the
-only coefficients with the counting variable are $\pm 1$, i.e., atoms
+only coefficients with the counting variable are $\pm 1$, i.e., 
 all atoms are of the form $k < t$ or $k \geq t$, and atoms such as $2k <
-x$ are not allowed. This is restriction is not fundamental as the
+x$ are not allowed. This restriction is not fundamental as the
 presented algorithms can be extended to cover them by relying on
 divisibility constraints.
 
@@ -147,7 +147,7 @@ formula of the form
 \label{maingoal}
 G(\vec{x}, \vec{c}) \land \bigwedge_i c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}\enspace,
 \end{equation}
-where no counting constraints appear in $A$, and all the formulas $\phi$
+where no counting constraints appear in $G(\vec{x}, \vec{c})$, and all the formulas $\phi$
 make sure that $k$ is always bounded. In the following, we assume all
 formulas are in above form. When needed, we will denote by $F_\lia$
 the arithmetic-only part of $F$, i.e., $F_\lia = G$.
@@ -161,7 +161,7 @@ We now present an algorithm that decides whether a formula of the form
 
 We assume that we have an SMT solver \solver that can decide
 satisfiability of formulas in theory $\qflia$, i.e., formulas without
-counting constraints, and that it can produce models in the case when
+counting constraints, and that it can produce models when
 the formula being checked is satisfiable. In addition, we assume that
 solver \solver can be used in an incremental fashion, i.e., that new
 assertions can be freely added (the \assert command) and that it
@@ -259,8 +259,8 @@ c \mapsto 20\}$, which satisfies the whole formula.
 
 \subsubsection{Constraints Interpretation}
 
-In this section, we explain how a set $\sharp\{x\mid\phi(x)\}$ can be
-symbolically computed under some assumptions.
+In this section, we explain how the term $\sharp\{x\mid\phi(x)\}$ can be
+computed symbolically under some assumptions.
 
 \begin{definition}[Assumptions]
 
@@ -275,11 +275,11 @@ means the conjunctions of the atoms of $A$.
 
 \begin{definition}[Symbolic Interval]
 
-A symbolic interval is a couple of values that are either an arithmetic
+A symbolic interval is a pair of values that are either an arithmetic
 term\footnote{In my implementation, the term has to be a variable or a constant,
 which is sufficient if new variable can be added.} or $\infty$. If $I = [a, b)$, $x \in I$ is
 defined as $x < b \land a \le x$. \newline~\newline
-It is finite if none of the bounds are infinite.
+The interval is finite if neither bound is infinite.
 
 \label{symbolic}
 
@@ -290,7 +290,7 @@ It is finite if none of the bounds are infinite.
 
 An arithmetic domain is a finite set of symbolic intervals (definition
 \ref{symbolic}). It is  associated with some assumptions
-(definition \ref{assumptions}) which make them disjoint and ensure that
+(definition \ref{assumptions}) that make them disjoint and ensure that
 the lower bound of an interval is lower than the upper bound.
 
 \label{arithmetic}
@@ -301,7 +301,8 @@ Let $D$ be an arithmetic domain. We write $x \lhd D$ for
 $\left(\bigvee\limits_{I \in S} x \in I\right)$.
 
 \begin{example}
-Let $I_1 = [0, x), I_2 = [y, 10)$ be two symbolic intervals. Let $D = {I_1, I_2}$
+Let $I_1 = [0, x), I_2 = [y, 10)$ be two symbolic intervals. Let $D = \{I_1,
+I_2\}$
 an arithmetic domain, associated with the assumption $0 \leq x < y \leq 10$.
 
 Then, $z \lhd D$ means that $z$ belongs either to $I_1$ or to $I_2$, that is:
@@ -311,7 +312,7 @@ Then, $z \lhd D$ means that $z$ belongs either to $I_1$ or to $I_2$, that is:
 Let $\psi_i$ be one of the formula of the counting constraints. We are going to
 give rules to compute a domain $D$ and a set of assumptions $A$ such as
 $A \implies \forall x \left(\psi_i(x, \mathbf{y}) \iff x \lhd D\right)$. The goal is to express the
-cardinality $\sharp\{x \mid \psi_i(x)\}$ with an arithmetic formula (see below), which is easy if $D$ is only
+cardinality $\sharp\{x \mid \psi_i(x)\}$ as an arithmetic formula (see below), which is easy if $D$ is only
 comprised of distinct intervals. That is why we want the set $D$
 to satisfy the following property:
 
@@ -341,7 +342,7 @@ $\{[y, +\infty)\}$ with no assumptions.
 If the formula is $x < y$, then the arithmetic domain is $\{(-\infty, y)\}$, with no assumptions.
 
 If the formula is a literal $l$ of the theory $\qflia$, then we look at the value of $l$ in
-$\mathcal{M}$. If it is \texttt{true}, then $S = \{(-\infty, +\infty)\}$ and the assumptions are
+$\mathcal{M}$. If $l$ is \texttt{true}, then $S = \{(-\infty, +\infty)\}$ and the assumptions are
 $\{l\}$. If it is \texttt{false}, then $D = \emptyset$ and the assumptions are $\{\lnot l\}$.
 
 Property \ref{distincts} clearly holds.
@@ -357,31 +358,28 @@ of $D'$.
 So, let $I = [a, b)$ and $J = [c, d)$ be two symbolic intervals. We want a new
 interval $K_{I, J} = [e, f)$ such as
 $A \cup A' \cup A_{D \sqcap D'} \implies \left(x \in I \land x \in J \iff x \in K_{I, J}\right)$.
-$A_{S \sqcap S'}$ is a set of additional assumptions that are added to make it possible to define
+$A_{S \sqcap S'}$ is a set of additional assumptions that make it possible to define
 the
 intersection. For instance, if the two intervals are $[0, x)$ and $[0, y)$, then $x < y$ or $y \le x$
 must be added to claim that the intersection is either $[0, x)$ or $[0, y)$.
 
-To choose what are the assumptions needed to compute the intersection, we are going to use the model
+To choose the assumptions needed to compute the intersection, we use the model
 $\mathcal{M}$
-of the formula $G$, so as the consistency between the assumptions is guaranteed.
+of the formula $G$, to guarantee consistency between the assumptions.
 
 If
 $max(a^\mathcal{M}, c^\mathcal{M}) < min(b^\mathcal{M}, d^\mathcal{M})$,
 then $K_{I, J} = [max(a, c), min(b, d))$ (where $max(a, c)$ is $a$
 if $a^\mathcal{M} > c^\mathcal{M}$, else $c$), else it is undefined
 (because in the model, the interpretation of the intervals are indeed
-disjoints).
+disjoint).
 
 The intersection of $I$ and $J$ is guided by the model.
-Every time there is a decision to take (such as $a < c$), the values
-of the model are looked at. Those decisions are recorded, as they
+Every time there a decision must be taken (such as $a < c$), the values
+of the model are examined. The decisions are recorded, as they
 are the assumptions required for this interpretation to be correct. The
 set $A_{D\sqcap D'}$ is composed of those decision. By induction, it is clear that if the same model
 $\mathcal{M}$ is used for every intersection, then $\mathcal{M}$ satisfies $A \cup A' \cup A_{D \sqcap D'}$.
-
-%It is also clear that by induction, if $S$ and $S'$ have the
-%property \ref{distinct}, $S\sqcap S'$ also respect this property.
 
 Then, the intersection of the domains is defined as
 $D \sqcap D' = \{ K_{I, J} \ |\ I \in D, J \in D' \}$. Some intervals $K_{I, J}$ may not be defined
@@ -464,13 +462,13 @@ Algorithm \ref{arith} terminates.
 \end{lemma}
 
 \begin{proof}
-In the former section, we explained how the assumptions set was computed. An
+In the previous section, we have explained how the assumptions set was computed. An
 assumption can be an equality, a disequality or an inequality between two terms
 that appear in the formulas $\phi_i$. Thus, there is a finite number of possible
 set of assumptions.
 
-At every iteration, there is a $\text{\textsc{assert}}(\lnot A)$, hence the fact that there is
-a finite number of iterations.
+At every iteration, there is an $\text{\textsc{assert}}(\lnot A)$, so the number
+of iteration must be finite.
 \end{proof}
 
 \begin{lemma}[Correctness]
@@ -496,12 +494,12 @@ contradicts lemma \ref{correctness-interpretation} or property \ref{distincts}.
 
 I implemented the algorithm described above as an overlay on an existing SMT solver. Any solver
 compatible with the SMT-LIB format \cite{barrett2010smt} and which can work in incremental mode can
-be used.I mostly experimented with Yices and Z3. The code is available at
+be used. I mostly experimented with Yices and Z3. The code is available at
 \url{https://github.com/xapantu/counting-smt/}.
 
 The counting solver takes a file in the SMT-LIB format \cite{barrett2010smt}, with some extensions
-to specify the constraints. It forwards most of the commands to the underlying solver. It only
-extracts the syntax extension to specify counting constraints and execute the algorithm \ref{arith}
+to specify the counting constraints. It forwards most of the commands to the underlying solver. It only
+extracts the syntax extension to specify the counting constraints and execute the algorithm \ref{arith}
 when it sees $\texttt{check-sat}$.
 
 The counting solver and the SMT solver interacts via plain text SMT-LIB  commands, which is far from
