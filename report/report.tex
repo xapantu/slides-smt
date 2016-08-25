@@ -14,7 +14,7 @@
 \hypersetup{
             pdfborder={0 0 0},
             breaklinks=true}
-
+\usepackage[]{geometry}
 \setcounter{secnumdepth}{3}
 
 \algnewcommand{\LineComment}[1]{\State \(\triangleright\) #1}
@@ -46,7 +46,28 @@
 \author{Lucas Baudin}
 
 \begin{document}
-\maketitle
+\begin{titlepage}
+  \begin{center}
+
+    \textsc{École Normale Supérieure} | \textsc{M1 Internship}\\[7cm]
+{\huge Solving Counting Constraints in First Order Formulas in SMT}
+
+
+    % Author and supervisor
+      \large
+		\vspace{1.5cm}
+        Lucas \textsc{Baudin}\\
+		\vspace{4cm}
+        \emph{Under the supervision of:}\\
+		\vspace{0.3cm}
+		Dejan \textsc{Jovanović}\\
+		Bruno \textsc{Dutertre}\\
+		\vspace{0.2cm}
+		Computer Science Laboratory, SRI International, Menlo Park CA
+
+
+  \end{center}
+\end{titlepage}
 
 {
 \setcounter{tocdepth}{3}
@@ -57,8 +78,6 @@
 \newtheorem{theorem}{Theorem} \newtheorem{property}{Property}
 
 \newmdtheoremenv{example}{Example}
-
-\newpage
 
 \section*{Introduction}\label{introduction}
 \label{sec:intro}
@@ -79,6 +98,10 @@
 \label{sec:conclusion}
 \input{conclusion}
 
+\section*{Acknowledgments}
+
+First of all, I would like to thank Dejan Jovanović and Bruno Dutertre for all their help and their advices during my internship, as well as their help to write my report.
+I also thank Jean-Christophe Filliâtre for counseling me in the choice of my internship and making it possible.
 \bibliographystyle{plain}
 \bibliography{report}
 

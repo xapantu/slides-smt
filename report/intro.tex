@@ -11,7 +11,7 @@ Model checking is a set of techniques that aim to establish whether a
 system, described as a state-transition system, satisfies a property.
 Both the system and the property are usually expressed in a suitable
 logical formalism, such as first-order logic, while the properties
-sometimes also includes temporal aspects such as ``always'' or
+sometimes include temporal aspects such as ``always'' or
 ``eventually''. A fundamental class of properties is the case of
 \emph{safety} properties, where the property $P$ expresses an
 invariant of a system $S$. That is, we are interested in checking
@@ -19,7 +19,7 @@ whether $P$ is true in all the reachable states of the system $S$. For
 infinite-state systems, the most common ways of proving/dis-proving a
 property are based on techniques such as bounded model checking
 \cite{biere2003bounded}, $k$-induction \cite{sheeran2000checking}, or
-IC3/PDR \cite{pdr}. In the case of infinite-state systems, these
+IC3/PDR \cite{pdr}. These
 techniques start with a symbolic representation of the property $P$
 and of the system $S$ in first-order logic and rely on satisfiability
 modulo theories (SMT) solvers \cite{barrett2009satisfiability} as
@@ -44,12 +44,12 @@ other non-faulty process have to follow his decision. Otherwise, they have to
 reach an agreement on their own.
 
 Several methods and tools have already been proposed to study
-parametric protocols. However, they are not particularly suited to
+parametric protocols. However, they are not particularly well suited to
 check fault tolerant protocols. For instance, \textsc{Cubicle}
 \cite{ConchonGKMZ12} is suited to study a class of parameterized
 protocols including cache coherence protocols, but is not equipped to
 deal with these counting constraints. On the other hand, recent
-developments of the MCMT framework \cite{AlbertiGP16} allow for
+developments in the MCMT framework \cite{AlbertiGP16} support
 counting constraints, but the proposed decision procedures are mostly
 theoretical and can not be integrated well into an invariant-discovery
 algorithm such as IC3 that requires features such as interpolation and

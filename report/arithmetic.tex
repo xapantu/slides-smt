@@ -9,9 +9,9 @@ constraints over these variables. A model $\mathcal{M}$ in $\qflia$ is
 an assignment of variable to values in $\mathbb{Z}$. Given a model
 $\mathcal{M}$, we can construct a new model where we assign a variable
 $x$ to a value $v$ and the rest of the assignment unmodified, which we
-denote with $\mathcal{M}^v_x$. As usual, when a formula $\phi$
+denote by $\mathcal{M}^v_x$. As usual, when a formula $\phi$
 evaluates to true in the model $\mathcal{M}$, we say that $\phi$ is
-satisfied in $\mathcal{M}$ and denote this with $\mathcal{M} \vDash
+satisfied in $\mathcal{M}$ and denote this by $\mathcal{M} \vDash
 \phi$. Given a term $t$ whose variables are defined in $\mathcal{M}$,
 $t^\mathcal{M} \in \mathbb{Z}$ is the value of the term in the model.
 
@@ -33,7 +33,7 @@ Figure \ref{formula}.
 \end{figure}
 
 We call the terms of the form $\cterm{\phi}$ \emph{counting
-terms}, and formulas of the form $c = \cterm{\phi}$
+terms}, and we call formulas of the form $c = \cterm{\phi}$
 \emph{counting constraints}. 
 Counting constraints denote the number of solutions for $k$
 that satisfy the formula $\phi$.
@@ -42,7 +42,9 @@ assigns all variables other than $k$, the term $\cterm{\psi}$
 denotes the cardinality of the set $D \subseteq \mathbb{Z}$ such that
 $v \in D \iff \mathcal{M}^v_k \vDash \phi$. In order for the semantics
 of the counting terms to be well defined, we assume that all counting
-terms are over formulas that ensure $k$ is always bounded\footnote{Otherwise, as a counting term must be evaluated in $\mathbb{Z}$, no model can represent an infinite $D$. If a counting term has to be evaluated to the cardinality of an infinite set, then the formula is considered \texttt{unsat}.}.
+terms are over formulas that ensure $k$ is always bounded\footnote{Otherwise, as
+a counting term must be evaluated in $\mathbb{Z}$, no model can represent an
+infinite $D$. If a counting term must be evaluated to the cardinality of an infinite set, then the formula is considered \texttt{unsat}.}.
 
 \begin{example}
 \label{ex:semantics}
@@ -68,14 +70,14 @@ $c^\mathcal{M} > 0$. In such a model the counting term then evaluates to
 \begin{align*}
   \cterm{0 \le k \le c}^\mathcal{M} = c^\mathcal{M} + 1\enspace,
 \end{align*}
-and the counting constraint is therefore must be false. Moreover it
+and the counting constraint is therefore false. Moreover, it
 is clear that the formula is equivalent to a purely arithmetic
 formula $(c=c+1) \land (c>0)$, which is not satisfiable in $\qflia$.
 \end{example}
 
-Example above illustrates that, in the theory $\qfclia$, formulas with
+The example above illustrates that, in the theory $\qfclia$, formulas with
 counting constraints can be reduced to formulas in $\qflia$. This is
-true due to $\qflia$ admitting quantifier elimination \cite{schweikardt}.
+true because $\qflia$ admits quantifier elimination \cite{schweikardt}.
 But, obtaining a full reduction is general is not as simple as above.
 
 \begin{example}
@@ -85,7 +87,7 @@ Let  $F$ be the formula
   c = \cterm{0 < k \le x \land 0 < k \le y}\enspace.
 \end{align*}
 In this case, the counting term can not be directly expressed with a
-single arithmetic term. This is because the value of the counting term
+single arithmetic term. The value of the counting term
 in a model $\mathcal{M}$ depends on the relationship between the values
 of variables $x$ and $y$:
 \begin{itemize}
@@ -93,7 +95,7 @@ of variables $x$ and $y$:
   \item if $x^\mathcal{M} > y^\mathcal{M}$, then $\cterm{0 < k \le x \land 0 < k \le y}^\mathcal{M} = y^\mathcal{M}$.
 \end{itemize}
 But, these assumptions on the relationship between $x$ and $y$ can
-be used as symbolic assumption to obtain an equicalent arithmetic
+be used as symbolic assumptions to obtain an equivalent arithmetic
 formula
 \begin{align*}
   (x \le y \implies c = x) \lor (x > y \implies c = y)\enspace.
@@ -130,10 +132,10 @@ In our context, we are looking at a restricted fragment of formulas
 built on the syntax of Figure \ref{formula}. In this fragment there is
 no nested counting constraints or quantifier alternations, the main
 sources of complexity in quantified reasoning. This allows us to
-consider only atoms that are \emph{counting-univariate}, i.e. each
+consider only atoms that are \emph{counting-univariate}, i.e., each
 atom within the counting constraint contains a single occurrence of
 the counting variable. Further, we only consider the case where the
-only coefficients with the counting variable are $\pm 1$, i.e. atoms
+only coefficients with the counting variable are $\pm 1$, i.e., atoms
 all atoms are of the form $k < t$ or $k \geq t$, and atoms such as $2k <
 x$ are not allowed. This is restriction is not fundamental as the
 presented algorithms can be extended to cover them by relying on
@@ -147,8 +149,8 @@ G(\vec{x}, \vec{c}) \land \bigwedge_i c_i = \cterm{\phi_i(k, \vec{x}, \vec{c})}\
 \end{equation}
 where no counting constraints appear in $A$, and all the formulas $\phi$
 make sure that $k$ is always bounded. In the following, we assume all
-formulas are in above form. When needed, we will denote with $F_\lia$
-the arithmetic-only part of $F$, i.e. $F_\lia = G$.
+formulas are in above form. When needed, we will denote by $F_\lia$
+the arithmetic-only part of $F$, i.e., $F_\lia = G$.
 
 \subsection{Decision Procedure}
 
@@ -158,10 +160,10 @@ We now present an algorithm that decides whether a formula of the form
 \subsubsection{Overview}
 
 We assume that we have an SMT solver \solver that can decide
-satisfiability of formulas in theory $\qflia$, i.e. formulas without
+satisfiability of formulas in theory $\qflia$, i.e., formulas without
 counting constraints, and that it can produce models in the case when
 the formula being checked is satisfiable. In addition, we assume that
-solver \solver can be used in an incremental fashion, i.e. that new
+solver \solver can be used in an incremental fashion, i.e., that new
 assertions can be freely added (the \assert command) and that it
 supports the \push and \pop commands.\footnote{These are all standard
 features that all major SMT solvers support.}
@@ -287,7 +289,7 @@ It is finite if none of the bounds are infinite.
 \begin{definition}[Arithmetic Domain]
 
 An arithmetic domain is a finite set of symbolic intervals (definition
-\ref{symbolic}). It is  associated to some assumptions
+\ref{symbolic}). It is  associated with some assumptions
 (definition \ref{assumptions}) which make them disjoint and ensure that
 the lower bound of an interval is lower than the upper bound.
 
@@ -300,7 +302,7 @@ $\left(\bigvee\limits_{I \in S} x \in I\right)$.
 
 \begin{example}
 Let $I_1 = [0, x), I_2 = [y, 10)$ be two symbolic intervals. Let $D = {I_1, I_2}$
-an arithmetic domain, associated to the assumption $0 \leq x < y \leq 10$.
+an arithmetic domain, associated with the assumption $0 \leq x < y \leq 10$.
 
 Then, $z \lhd D$ means that $z$ belongs either to $I_1$ or to $I_2$, that is:
 \begin{align*} z \lhd D \iff 0 \leq z < x \lor y \leq z < 10\end{align*}
@@ -319,7 +321,7 @@ to satisfy the following property:
 Let $D$ be an arithmetic domain, and $A$ the associated set of assumptions.
 
 $D$ is said to have the property \ref{distincts} if for $I, J \in D$ such that
-$I \neq J$, we have $A \implies (x \in I \implies x \not\in J)$, i.e.
+$I \neq J$, we have $A \implies (x \in I \implies x \not\in J)$, i.e.,
 $\{x\ |\ x \in I\}$ and $\{x\ |\ x \in J\}$ are
 disjoints\footnote{Here, $x \in I$ is still defined as $a \le x \land x < b$ if $I = [a, b)$.}.
 
@@ -346,7 +348,8 @@ Property \ref{distincts} clearly holds.
 
 \paragraph{Conjunction}
 
-Let $D$ and $D'$ be two arithmetic domains computed for $\phi$ and $\psi$, and $A$, $A'$ the sets of assumptions associated to
+Let $D$ and $D'$ be two arithmetic domains computed for $\phi$ and $\psi$, and
+$A$, $A'$ the sets of assumptions associated with
 them. The domain of $\phi\land\psi$ is the intersection of $D$ and $D'$. To construct this intersection $D \sqcap D'$, we are going to
 do the intersection of an interval $I$ of $D$ and an interval $J$
 of $D'$.
@@ -409,7 +412,8 @@ domain $D$ (with assumptions $A$) computed for $\phi$. Then property \ref{distin
 are several cases, but here I only explain how the algorithm works if there is no $\infty$ in $D$.
 
 By looking at the values in the model $\mathcal{M}$ of the bounds of the intervals in $D$, we can
-choose inequalities that make $D = \{[a_1, b_1), \ldots, [a_k, b_k)\}$ ordered, i.e. $\forall i$, $A
+choose inequalities that make $D = \{[a_1, b_1), \ldots, [a_k, b_k)\}$ ordered,
+i.e., $\forall i$, $A
 \implies b_i < a_{i+1}$.
 
 Then, the arithmetic domain for $\lnot \phi$ is $D' = \{(-\infty, a_1), [b_1, a_1), \ldots, [b_k,

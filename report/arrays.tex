@@ -100,7 +100,8 @@ algorithm.
     \EndFor
     \State \Call{slice}{$(D_i)_i$}
     \State \Call{partition}{$(D_i)_i$}
-    \State \Comment{$v_\alpha$ is a variable corresponding to a constraint associated to $D_i$}
+    \State \Comment{$v_\alpha$ is a variable corresponding to a constraint
+	associated with $D_i$}
     \State \Call{assert}{$\bigwedge\limits_{i=1}^n c_i = \sum\limits_{[a, b] \in S_i} \sum\limits_{\alpha} v_{\alpha}$}
     \State \Call{assert-constraints}{$(D_i)_i$}
     \LineComment Check if the assumptions and counting constraints are consistent.
@@ -131,7 +132,7 @@ Consider the following formula
 \item First we ask \solver for a model of $G$, it gives $\mathcal{M} = \{ N
 \mapsto 1, c_1 \mapsto 1, c_2 \mapsto 1 \}$.
 \item For both counting terms, domains are computed and are composed of a single
-interval: $[0, N)$ associated to $a[\cdot] > 0$ and $[0, N)$ associated to
+interval: $[0, N)$ associated with $a[\cdot] > 0$ and $[0, N)$ associated with
 $a[\cdot] \leq 0$. Here, slicing do not change the domain,
 as there is a single interval. Partitioning creates 4 constraint: $a[\cdot] >
 0 \land a[\cdot] \leq 0$, $a[\cdot] > 0 \land \lnot (a[\cdot] \leq 0)$,
@@ -163,7 +164,7 @@ $a_1[\cdot], \ldots, a_k[\cdot]$.
 \begin{definition}[Domain]
 
 A domain is a finite set of symbolic intervals (definition
-\ref{symbolic}), every one of them associated to an array constraint
+\ref{symbolic}), every one of them associated with an array constraint
 (definition \ref{array}).
 
 \label{domain}
@@ -171,7 +172,7 @@ A domain is a finite set of symbolic intervals (definition
 \end{definition}
 
 An arithmetic domain (definition \ref{arithmetic}) can then be seen as a
-domain whose every symbolic interval is associated to the constraint
+domain whose every symbolic interval is associated with the constraint
 \texttt{true}.
 
 Generating an array constraint for every symbolic interval is done while we compute those symbolic
@@ -180,7 +181,8 @@ look at a conjunction and produce the intersection of every symbolic interval in
 associate to this intersection the conjunction of the array constraints of both intervals.
 
 There are additional base cases, which are the literals with $a_1[x], \ldots, a_k[x]$. For those
-case, we return the domain with one symbolic interval, $(-\infty, +\infty)$, associated to the
+case, we return the domain with one symbolic interval, $(-\infty, +\infty)$,
+associated with the
 constraint which is the literal, and to an empty assumptions set.
 
 \subsubsection{Checking the Constraints on the Arrays}
@@ -206,8 +208,8 @@ meantime the set of assumptions may be made bigger).
 \paragraph{Partition}\label{partition}
 
 At this point we have a set of domains who all have the same intervals
-but different array constraints associated to them. For an interval
-$I$, we consider every constraints associated to it, i.e.
+but different array constraints associated with them. For an interval
+$I$, we consider every constraints associated with it, i.e.,
 $\phi_1, \ldots, \phi_l$. From these one we can create a set of formula
 $\psi_1, \ldots, \psi_{l'}$ which are a
 partition\footnote{A partition is a set of formula $\psi_1, \ldots, \psi_n$ such as $\psi_1 \lor \ldots \lor \psi_n \equiv \top$ but $\forall i, j. \; \psi_i \land \psi_j \equiv \bot$.}.
@@ -245,7 +247,7 @@ for an array read. That's why it is interesting to change this algorithm
 to make it work with a usual array theory of an SMT solver. The
 algorithm then has to take into account the decision that the SMT solver
 when it outputs the constraints, so as the result is consistent
-(i.e.~the arrays are not defined twice).
+(i.e., the arrays are not defined twice).
 
 Unfortunately, as our algorithm operates outside of the solver, the
 interactions they can have are quite limited. Thus, it is important to
